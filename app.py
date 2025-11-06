@@ -43,14 +43,21 @@ if missing:
     st.error(f"❌ Still missing columns: {missing}")
 else:
     if st.button("Predict Popularity"):
-        scaler = StandardScaler()
-        X = df[required_columns]
-        X_scaled = scaler.fit_transform(X)
-        y_pred = model.predict(X_scaled)
-        df['Predicted_Popularity'] = (y_pred > 0.5).astype(int)
+    scaler = StandardScaler()
+    X = df[required_columns]
+    X_scaled = scaler.fit_transform(X)
+    y_pred = model.predict(X_scaled)
 
-        st.success("✅ Prediction Completed!")
-        st.dataframe(df)
+    # Check if model is binary or multi-class
+    if y_pred.shape[1] == 1:
+        df['Predicted_Popularity'] = (y_pred.flatten() > 0.5).astype(int)
+    else:
+        classes = ['Not Popular', 'Average', 'Popular']
+        df['Predicted_Popularity'] = [classes[i] for i in y_pred.argmax(axis=1)]
+
+    st.success("✅ Prediction Completed!")
+    st.dataframe(df)
+
 
 
 
