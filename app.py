@@ -20,7 +20,7 @@ if uploaded_file:
         'like_count': 'likes',
         'Likes': 'likes',
         'comment_count': 'comments',
-        'Comments': 'comments',
+        
         'view_count': 'views',
         'Views': 'views',
         'sentiment': 'sentiment_score',
@@ -49,6 +49,7 @@ if uploaded_file:
 
             st.success("✅ Prediction Completed!")
             st.dataframe(df)
+
 
 
 
