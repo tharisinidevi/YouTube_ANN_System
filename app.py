@@ -16,16 +16,16 @@ if uploaded_file:
     if st.button("Predict Popularity"):
         # ✅ Adjust column names according to your dataset
         df.rename(columns={
-            'like_count': 'likes',
+            'likes': 'likes',
             'comment_count': 'comments',
-            'share_count': 'shares'
+            'views': 'views'
         }, inplace=True)
 
         # ✅ If sentiment is missing
-        if 'sentiment_score' not in df.columns:
-            df['sentiment_score'] = 0.5
+        if 'sentiment_rank' not in df.columns:
+            df['sentiment_rank'] = 0.5
 
-        X = df[['likes', 'comments', 'shares', 'sentiment_score']]
+        X = df[['likes', 'comment_count', 'views', 'sentiment_rank']]
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         y_pred = model.predict(X_scaled)
@@ -33,6 +33,7 @@ if uploaded_file:
         df['Predicted_Popularity'] = (y_pred > 0.5).astype(int)
         st.success("✅ Prediction Completed!")
         st.dataframe(df)
+
 
 
 
