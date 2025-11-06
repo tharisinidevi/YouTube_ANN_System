@@ -1,29 +1,40 @@
 import streamlit as st
+import pandas as pd
 import numpy as np
 from tensorflow.keras.models import load_model
-from utils.preprocessing import prepare_input
+import joblib   # To load the scaler
 
-# Load trained model
-model = load_model("model/ann_model.h5")
+# Load trained model and scaler
+model = load_model('model/ann_model.h5')
+scaler = joblib.load('model/scaler.pkl')   # Make sure you saved scaler during training
 
-st.title(" YouTube Video Popularity Prediction System")
-st.write("This system predicts YouTube video popularity using engagement metrics and sentiment score.")
+st.title("🎬 YouTube Video Popularity Prediction (ANN System)")
 
-# User inputs
-views = st.number_input("Enter video views:", min_value=0)
-likes = st.number_input("Enter video likes:", min_value=0)
-comments = st.number_input("Enter number of comments:", min_value=0)
-sentiment = st.number_input("Enter average sentiment score (-1 to 2):", min_value=-1.0, max_value=2.0, step=0.1)
+uploaded_file = st.file_uploader("Upload your YouTube dataset (CSV)", type="csv")
 
-# Predict Button
-if st.button("Predict Popularity"):
-    data = prepare_input(views, likes, comments, sentiment)
-    prediction = model.predict(data)
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+    st.subheader("📊 Uploaded Data Preview")
+    st.dataframe(df.head())
 
-    # If model has 3 classes (Softmax)
-    result = np.argmax(prediction)
-    categories = ["Not Popular", "Average", "Popular"]
+    try:
+        if st.button("Predict Popularity"):
+            # ✅ Match features used during training
+            X = df[['views', 'likes', 'comments', 'sentiment_score']]  # Change if needed
 
-    st.success(f" Predicted Popularity: **{categories[result]}**")
-    st.write(" Confidence Scores:")
-    st.json({categories[i]: float(prediction[0][i]) for i in range(3)})
+            # ✅ Use SAME SCALER used in training
+            X_scaled = scaler.transform(X)
+
+            # ✅ Predict
+            y_pred = model.predict(X_scaled)
+
+            # ✅ If multi-class (3 outputs)
+            df['Predicted_Popularity'] = np.argmax(y_pred, axis=1)
+
+            # ✅ Show results
+            st.success("✅ Prediction completed!")
+            st.dataframe(df)
+
+    except Exception as e:
+        st.error(f"❌ Error: {str(e)}")
+
