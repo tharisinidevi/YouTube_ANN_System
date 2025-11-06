@@ -15,40 +15,43 @@ if uploaded_file:
     st.write("✅ File uploaded successfully!")
     st.write("📌 Columns detected in your dataset:", df.columns.tolist())
 
-    # Rename dataset columns to match what model expects
-    rename_columns = {
-        'like_count': 'likes',
-        'Likes': 'likes',
-        'comment_count': 'comments',
-        
-        'view_count': 'views',
-        'Views': 'views',
-        'sentiment': 'sentiment_score',
-        'sentiment_rank': 'sentiment_score',
-        'compound': 'sentiment_score'
-    }
-    df.rename(columns=rename_columns, inplace=True)
+    # ✅ Auto rename common column variations to expected names
+rename_columns = {
+    'like_count': 'likes',
+    'Likes': 'likes',
+    'comment_count': 'comments',
+    'Comments': 'comments',
+    'comment': 'comments',
+    'view_count': 'views',
+    'Views': 'views',
+    'sentiment': 'sentiment_score',
+    'sentiment_rank': 'sentiment_score',
+    'compound': 'sentiment_score'
+}
+df.rename(columns=rename_columns, inplace=True)
 
-    # Define the columns your model requires
-    required_columns = ['likes', 'comments', 'views', 'sentiment_score']
+# ✅ If 'comments' column is still missing, create a default one
+if 'comments' not in df.columns:
+    df['comments'] = 0  # assuming missing, set to zero or any default value
+    st.warning("⚠️ 'comments' column not found. Default value 0 added.")
 
-    # Check missing columns
-    missing = [col for col in required_columns if col not in df.columns]
+# ✅ Required columns
+required_columns = ['likes', 'comments', 'views', 'sentiment_score']
+missing = [col for col in required_columns if col not in df.columns]
 
-    if missing:
-        st.error(f"❌ Missing columns in your dataset: {missing}")
-    else:
-        if st.button("Predict Popularity"):
-            scaler = StandardScaler()
-            X = df[required_columns]
-            X_scaled = scaler.fit_transform(X)
+if missing:
+    st.error(f"❌ Still missing columns: {missing}")
+else:
+    if st.button("Predict Popularity"):
+        scaler = StandardScaler()
+        X = df[required_columns]
+        X_scaled = scaler.fit_transform(X)
+        y_pred = model.predict(X_scaled)
+        df['Predicted_Popularity'] = (y_pred > 0.5).astype(int)
 
-            # Predict
-            y_pred = model.predict(X_scaled)
-            df['Predicted_Popularity'] = (y_pred > 0.5).astype(int)
+        st.success("✅ Prediction Completed!")
+        st.dataframe(df)
 
-            st.success("✅ Prediction Completed!")
-            st.dataframe(df)
 
 
 
