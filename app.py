@@ -12,55 +12,39 @@ uploaded_file = st.file_uploader("Upload a YouTube CSV dataset", type="csv")
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
-    st.write("✅ File uploaded successfully!")
-    st.write("📌 Columns detected in your dataset:", df.columns.tolist())
+    st.write("✅ File uploaded!")
+    st.write("Columns:", df.columns.tolist())
 
-    # ✅ Auto rename common column variations to expected names
-rename_columns = {
-    'like_count': 'likes',
-    'Likes': 'likes',
-    'comment_count': 'comments',
-    'Comments': 'comments',
-    'comment': 'comments',
-    'view_count': 'views',
-    'Views': 'views',
-    'sentiment': 'sentiment_score',
-    'sentiment_rank': 'sentiment_score',
-    'compound': 'sentiment_score'
-}
-df.rename(columns=rename_columns, inplace=True)
+    # Rename or create missing columns
+    rename_columns = {
+        'like_count': 'likes',
+        'comment_count': 'comments',
+        'view_count': 'views',
+        'sentiment_rank': 'sentiment_score'
+    }
+    df.rename(columns=rename_columns, inplace=True)
 
-# ✅ If 'comments' column is still missing, create a default one
-if 'comments' not in df.columns:
-    df['comments'] = 0  # assuming missing, set to zero or any default value
-    st.warning("⚠️ 'comments' column not found. Default value 0 added.")
+    if 'comments' not in df.columns:
+        df['comments'] = 0  # Default
 
-# ✅ Required columns
-required_columns = ['likes', 'comments', 'views', 'sentiment_score']
-missing = [col for col in required_columns if col not in df.columns]
+    required_columns = ['likes', 'comments', 'views', 'sentiment_score']
+    missing = [col for col in required_columns if col not in df.columns]
 
-if missing:
-    st.error(f"❌ Still missing columns: {missing}")
-else:
-    if st.button("Predict Popularity"):
-    scaler = StandardScaler()
-    X = df[required_columns]
-    X_scaled = scaler.fit_transform(X)
-    y_pred = model.predict(X_scaled)
-
-    # Check if model is binary or multi-class
-    if y_pred.shape[1] == 1:
-        df['Predicted_Popularity'] = (y_pred.flatten() > 0.5).astype(int)
+    if missing:
+        st.error(f"❌ Missing columns: {missing}")
     else:
-        classes = ['Not Popular', 'Average', 'Popular']
-        df['Predicted_Popularity'] = [classes[i] for i in y_pred.argmax(axis=1)]
+        if st.button("Predict Popularity"):
+            scaler = StandardScaler()
+            X = df[required_columns]
+            X_scaled = scaler.fit_transform(X)
+            y_pred = model.predict(X_scaled)
 
-    st.success("✅ Prediction Completed!")
-    st.dataframe(df)
+            if y_pred.shape[1] == 1:
+                df['Predicted_Popularity'] = (y_pred.flatten() > 0.5).astype(int)
+            else:
+                classes = ['Not Popular', 'Average', 'Popular']
+                df['Predicted_Popularity'] = [classes[i] for i in y_pred.argmax(axis=1)]
 
-
-
-
-
-
+            st.success("✅ Prediction Completed!")
+            st.dataframe(df)
 
