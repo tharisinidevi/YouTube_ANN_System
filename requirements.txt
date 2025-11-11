@@ -1,6 +1,9 @@
 streamlit
 tensorflow
 scikit-learn
+textblob
+joblib
 numpy
 pandas
 matplotlib
+
