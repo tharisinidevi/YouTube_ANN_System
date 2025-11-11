@@ -156,8 +156,10 @@ if predict_btn:
 
     st.info("💡 Insights follow your ANN model weighting: Views (50%) > Likes (30%) > Sentiment (20%).")
 
-elif reset_btn:
-    st.experimental_rerun()
+ elif reset_btn:
+    st.rerun()
+
+
 
 
 
