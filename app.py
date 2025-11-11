@@ -23,22 +23,21 @@ views = st.number_input("Total Views", min_value=0, step=1)
 likes = st.number_input("Total Likes", min_value=0, step=1)
 comments_count = st.number_input("Total Comments Count", min_value=0, step=1)
 
-st.subheader("💬 Paste Top Comments (one per line)")
-user_comments = st.text_area("Enter the top 10 comments")
+st.subheader("💬 Paste Top Comments (any number, one per line)")
+user_comments = st.text_area("Enter available comments (optional)")
 
 # ======================
 # Sentiment Calculation
 # ======================
 def get_avg_sentiment(comments_text):
-    comments = comments_text.split("\n")
+    comments = [c.strip() for c in comments_text.split("\n") if c.strip()]
     sentiments = []
     for comment in comments:
-        if comment.strip():
-            polarity = TextBlob(comment).sentiment.polarity
-            sentiments.append(polarity)
+        polarity = TextBlob(comment).sentiment.polarity
+        sentiments.append(polarity)
     if sentiments:
-        return np.mean(sentiments)
-    return 0.0
+        return np.mean(sentiments), len(sentiments)
+    return 0.0, 0  # default if no comments
 
 # ======================
 # Normalize Helper Function
@@ -52,7 +51,7 @@ def normalize(value, max_value):
 # Prediction Button
 # ======================
 if st.button("🔮 Predict Popularity"):
-    avg_sentiment = get_avg_sentiment(user_comments)
+    avg_sentiment, num_comments = get_avg_sentiment(user_comments)
 
     # Prepare input for ANN model
     user_data = np.array([[views, likes, comments_count, avg_sentiment]])
@@ -61,9 +60,8 @@ if st.button("🔮 Predict Popularity"):
     popularity_class = np.argmax(prediction, axis=1)[0]
 
     # ======================
-    # Calculate Weighted Popularity Score (your formula)
+    # Weighted Popularity Score (from your model formula)
     # ======================
-    # For simplicity, assume realistic normalization constants (adjust if dataset-specific)
     max_views = 1000000   # normalize relative to 1M views
     max_likes = 50000     # normalize relative to 50k likes
     max_sentiment = 1.0   # sentiment polarity max
@@ -87,9 +85,13 @@ if st.button("🔮 Predict Popularity"):
     st.success(f"✅ Predicted Popularity: **{result}**")
     st.write(f"🧠 Average Sentiment Score: {avg_sentiment:.2f}")
     st.write(f"📈 Weighted Popularity Score: **{popularity_score:.2f}**")
+    st.write(f"💬 Comments Analyzed: **{num_comments}**")
+
+    if num_comments == 0:
+        st.warning("⚠️ No comments provided — sentiment analysis skipped (prediction may be less accurate).")
 
     # ======================
-    # Weight-Based Recommendations
+    # Personalized Recommendations
     # ======================
     st.subheader("📌 Personalized Recommendations:")
 
@@ -107,29 +109,30 @@ if st.button("🔮 Predict Popularity"):
     if likes_rank < 0.3:
         tips.append("👍 **Low Likes (30% weight)** – Add stronger calls-to-action or engaging video hooks.")
     elif likes_rank < 0.7:
-        tips.append("💖 **Moderate Likes** – Try adding emotional storytelling to strengthen viewer connection.")
+        tips.append("💖 **Moderate Likes** – Try emotional storytelling or better thumbnail design.")
     else:
-        tips.append("🌟 **High Likes** – Your audience loves your content! Maintain your tone and engagement style.")
+        tips.append("🌟 **High Likes** – Audience enjoys your content! Maintain tone and engagement style.")
 
     # Sentiment-driven suggestions (20% weight)
     if sentiment_rank < 0.3:
-        tips.append("😟 **Low Sentiment (20% weight)** – Address criticism in comments; review tone and clarity.")
+        tips.append("😟 **Low Sentiment (20% weight)** – Address viewer criticism; improve tone and clarity.")
     elif sentiment_rank < 0.7:
-        tips.append("🙂 **Mixed Sentiment** – Improve pacing, tone, or topic clarity to enhance audience mood.")
+        tips.append("🙂 **Mixed Sentiment** – Experiment with pacing, topic depth, or tone.")
     else:
-        tips.append("🥰 **Positive Sentiment** – Excellent viewer reception! Build on this positive feedback.")
+        tips.append("🥰 **Positive Sentiment** – Viewers love your content! Build on their feedback.")
 
-    # Comments-based engagement check
+    # Comment engagement check
     if comments_count < (0.01 * views):
-        tips.append("💬 **Low Comment Ratio** – Encourage interaction with questions or polls.")
+        tips.append("💬 **Low Comment Ratio** – Ask questions or create polls to encourage more discussion.")
     else:
-        tips.append("💭 **Good Engagement** – Keep responding to comments to boost community trust.")
+        tips.append("💭 **Good Engagement** – Keep interacting with your audience to boost loyalty.")
 
-    # Display all recommendations
     for tip in tips:
         st.write(tip)
 
     st.info("💡 These insights align with your ANN model’s internal weighting: Views (50%) > Likes (30%) > Sentiment (20%).")
+
+
 
 
 
