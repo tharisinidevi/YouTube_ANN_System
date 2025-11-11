@@ -156,8 +156,12 @@ if predict_btn:
 
     st.info("💡 Insights follow your ANN model weighting: Views (50%) > Likes (30%) > Sentiment (20%).")
 
- elif reset_btn:
+elif reset_btn:
+    # Clears all session values and reloads the app
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
     st.rerun()
+
 
 
 
