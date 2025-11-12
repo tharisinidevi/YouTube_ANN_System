@@ -18,6 +18,14 @@ scaler = joblib.load(SCALER_PATH)
 # ======================
 st.set_page_config(page_title="YouTube Popularity Predictor", page_icon="🎬", layout="centered")
 
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+# Apply your external CSS
+local_css("style.css")
+
+
 st.title("🎬 YouTube Video Popularity Predictor")
 st.caption("Predict your video popularity based on engagement metrics and viewer sentiment.")
 
@@ -161,6 +169,7 @@ elif reset_btn:
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.rerun()
+
 
 
 
