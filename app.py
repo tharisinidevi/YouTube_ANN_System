@@ -21,6 +21,12 @@ st.title("🎬 YouTube Video Popularity Predictor (with Smart Recommendations)")
 
 st.markdown("---")
 
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+# Apply your external CSS
+local_css("style.css")
 # ======================
 # Input Section
 # ======================
@@ -156,6 +162,7 @@ if predict_btn:
 
 elif reset_btn:
     st.experimental_rerun()
+
 
 
 
