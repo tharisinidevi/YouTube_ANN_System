@@ -17,7 +17,6 @@ scaler = joblib.load(SCALER_PATH)
 # Streamlit UI
 # ======================
 st.set_page_config(page_title="YouTube Popularity Predictor", page_icon="🎬", layout="centered")
-
 def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
@@ -26,149 +25,134 @@ def local_css(file_name):
 local_css("style.css")
 
 
-st.title("🎬 YouTube Video Popularity Predictor")
-st.caption("Predict your video popularity based on engagement metrics and viewer sentiment.")
+st.title("🎬 YouTube Video Popularity Predictor (Weight-Based Recommendations)")
+st.write("Predict your video's popularity based on **views**, **likes**, **comments**, and **sentiment**!")
 
-# Initialize session state for reset
-if "reset_flag" not in st.session_state:
-    st.session_state.reset_flag = False
-
-def reset_inputs():
-    st.session_state["views"] = 0
-    st.session_state["likes"] = 0
-    st.session_state["comments_count"] = 0
-    st.session_state["user_comments"] = ""
-    st.session_state.reset_flag = True
-
-# ======================
-# Input Section
-# ======================
 st.subheader("📊 Enter Video Metrics")
-
-views = st.number_input("Total Views", min_value=0, step=1, key="views")
-likes = st.number_input("Total Likes", min_value=0, step=1, key="likes")
-comments_count = st.number_input("Total Comments Count", min_value=0, step=1, key="comments_count")
-
-st.subheader("💬 Paste Top Comments (optional)")
-user_comments = st.text_area("Enter available comments (one per line)", key="user_comments")
+views = st.number_input("Total Views", min_value=0, step=1)
+likes = st.number_input("Total Likes", min_value=0, step=1)
+comments_count = st.number_input("Total Comments Count", min_value=0, step=1)
 
 # ======================
-# Sentiment Calculation
+# Comment Section (10 boxes)
+# ======================
+st.subheader("💬 Enter Top Comments (up to 10, optional)")
+comments = []
+for i in range(10):
+    comment = st.text_input(f"Comment {i+1}", "")
+    comments.append(comment.strip())
+
+# Combine all non-empty comments
+user_comments = "\n".join([c for c in comments if c])
+
+# ======================
+# Helper Functions
 # ======================
 def get_avg_sentiment(comments_text):
     comments = [c.strip() for c in comments_text.split("\n") if c.strip()]
-    sentiments = [TextBlob(c).sentiment.polarity for c in comments]
-    return (np.mean(sentiments), len(sentiments)) if sentiments else (0.0, 0)
+    sentiments = []
+    for comment in comments:
+        polarity = TextBlob(comment).sentiment.polarity
+        sentiments.append(polarity)
+    if sentiments:
+        return np.mean(sentiments), len(sentiments)
+    return 0.0, 0
 
-# ======================
-# Normalize Helper Function (for weighted score only)
-# ======================
 def normalize(value, max_value):
     if max_value == 0:
         return 0
     return min(value / max_value, 1.0)
 
 # ======================
-# Prediction Button
+# Prediction Logic
 # ======================
-col1, col2 = st.columns([1, 1])
-with col1:
-    predict_btn = st.button("🔮 Predict Popularity")
-with col2:
-    reset_btn = st.button("🔁 Reset", on_click=reset_inputs)
-
-if predict_btn:
+if st.button("🔮 Predict Popularity"):
     avg_sentiment, num_comments = get_avg_sentiment(user_comments)
 
-    # ======================
-    # Model Input (aligned with training)
-    # ======================
+    # Scale input
     user_data = np.array([[views, likes, comments_count, avg_sentiment]])
-    user_data_scaled = scaler.transform(user_data)  # same scaling as during training
-
-    # Predict
+    user_data_scaled = scaler.transform(user_data)
     prediction = model.predict(user_data_scaled)
     popularity_class = np.argmax(prediction, axis=1)[0]
 
-    # Popularity class mapping
-    if popularity_class == 0:
-        result = "Not Popular"
-        emoji = "📉"
-    elif popularity_class == 1:
-        result = "Average"
-        emoji = "📊"
-    else:
-        result = "Popular"
-        emoji = "🔥"
+    # Weighted popularity score (your formula)
+    max_views = 1_000_000
+    max_likes = 50_000
+    max_sentiment = 1.0
 
-    # Display prediction
-    st.success(f"{emoji} **Predicted Popularity:** {result}")
-    st.write(f"🧠 Average Sentiment Score: `{avg_sentiment:.2f}`")
-    st.write(f"💬 Comments Analyzed: `{num_comments}`")
+    views_rank = normalize(views, max_views)
+    likes_rank = normalize(likes, max_likes)
+    sentiment_rank = normalize(avg_sentiment, max_sentiment)
+
+    popularity_score = (0.5 * views_rank) + (0.3 * likes_rank) + (0.2 * sentiment_rank)
+
+    # Popularity Level
+    if popularity_class == 0:
+        result = "Low Popularity"
+    elif popularity_class == 1:
+        result = "Medium Popularity"
+    else:
+        result = "High Popularity"
+
+    # ======================
+    # Output Results
+    # ======================
+    st.success(f"✅ Predicted Popularity: **{result}**")
+    st.write(f"🧠 Average Sentiment Score: {avg_sentiment:.2f}")
+    st.write(f"📈 Weighted Popularity Score: **{popularity_score:.2f}**")
+    st.write(f"💬 Comments Analyzed: **{num_comments}**")
 
     if num_comments == 0:
         st.warning("⚠️ No comments provided — sentiment analysis skipped (prediction may be less accurate).")
 
     # ======================
-    # Weighted Popularity Score (for recommendations only)
-    # ======================
-    w_views, w_likes, w_sent = 0.5, 0.3, 0.2
-    max_views, max_likes, max_sentiment = 1_000_000, 50_000, 1.0
-
-    views_rank = normalize(views, max_views)
-    likes_rank = normalize(likes, max_likes)
-    sentiment_rank = normalize(avg_sentiment, max_sentiment)
-    popularity_score = (w_views * views_rank) + (w_likes * likes_rank) + (w_sent * sentiment_rank)
-
-    st.write(f"📈 Weighted Popularity Score (Display Only): **{popularity_score:.2f}**")
-
-    # ======================
     # Personalized Recommendations
     # ======================
-    st.subheader("📌 Personalized Recommendations")
+    st.subheader("📌 Personalized Recommendations:")
 
     tips = []
 
-    # Views-driven (50%)
+    # Views-based
     if views_rank < 0.3:
-        tips.append("📉 **Low Views (50%)** – Improve SEO and collaborate with similar creators.")
+        tips.append("📉 **Low Views (50% weight)** – Focus on SEO optimization and collaboration to increase reach.")
     elif views_rank < 0.7:
-        tips.append("👀 **Moderate Views** – Optimize video titles, tags, and improve watch time.")
+        tips.append("👀 **Moderate Views** – Improve titles, tags, and watch time to boost visibility.")
     else:
-        tips.append("🔥 **High Views** – Maintain upload consistency; expand into related niches.")
+        tips.append("🔥 **High Views** – Maintain consistency; create similar successful content.")
 
-    # Likes-driven (30%)
+    # Likes-based
     if likes_rank < 0.3:
-        tips.append("👍 **Low Likes (30%)** – Use clear CTAs and engaging intros to increase reactions.")
+        tips.append("👍 **Low Likes (30% weight)** – Add stronger calls-to-action or engaging video hooks.")
     elif likes_rank < 0.7:
-        tips.append("💖 **Moderate Likes** – Try emotional storytelling and attractive thumbnail designs.")
+        tips.append("💖 **Moderate Likes** – Try emotional storytelling or better thumbnails.")
     else:
-        tips.append("🌟 **High Likes** – Strong engagement! Continue leveraging audience preferences.")
+        tips.append("🌟 **High Likes** – Audience enjoys your content! Maintain your tone and energy.")
 
-    # Sentiment-driven (20%)
+    # Sentiment-based
     if sentiment_rank < 0.3:
-        tips.append("😟 **Low Sentiment (20%)** – Address criticism or clarify message tone.")
+        tips.append("😟 **Low Sentiment (20% weight)** – Address criticism; improve tone and clarity.")
     elif sentiment_rank < 0.7:
-        tips.append("🙂 **Mixed Sentiment** – Balance humor and clarity for better connection.")
+        tips.append("🙂 **Mixed Sentiment** – Adjust pacing or explore lighter topics.")
     else:
-        tips.append("🥰 **Positive Sentiment** – Viewers love your content! Keep your tone and style.")
+        tips.append("🥰 **Positive Sentiment** – Viewers love your content! Build on this success.")
 
-    # Comments-to-views ratio
+    # Comment ratio
     if comments_count < (0.01 * views):
-        tips.append("💬 **Low Comment Ratio** – Ask interactive questions to boost engagement.")
+        tips.append("💬 **Low Comment Ratio** – Ask questions or create polls to encourage more interaction.")
     else:
-        tips.append("💭 **Good Engagement** – Maintain community interaction through replies and polls.")
+        tips.append("💭 **Good Engagement** – Keep responding to build loyalty.")
 
     for tip in tips:
         st.write(tip)
 
-    st.info("💡 Insights follow your ANN model weighting: Views (50%) > Likes (30%) > Sentiment (20%).")
+    st.info("💡 Insights are weighted by your model: Views (50%) > Likes (30%) > Sentiment (20%).")
 
-elif reset_btn:
-    # Clears all session values and reloads the app
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.rerun()
+# ======================
+# Reset Button
+# ======================
+if st.button("🔁 Reset Form"):
+    st.session_state.clear()
+    st.experimental_rerun()
 
 
 
