@@ -5,5 +5,7 @@ textblob
 joblib
 numpy
 pandas
+plotly
 matplotlib
+
 
