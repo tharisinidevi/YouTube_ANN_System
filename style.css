@@ -1,28 +1,23 @@
-[data-testid="stAppViewContainer"] {
-    background-image: url("https://i.pinimg.com/1200x/1e/5a/27/1e5a27eed11a500b2c242e6750f71e98.jpg");
-    background-size: cover;
-    background-position: center;
+body {
+  background-image: url('https://i.pinimg.com/1200x/1e/5a/27/1e5a27eed11a500b2c242e6750f71e98.jpg');
+  background-size: cover;
+  background-attachment: fixed;
 }
 
-section.main > div {
-    background: rgba(255,255,255,0.9);
-    border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+h1, h2, h3, h4 {
+  color: #222831;
+  font-family: 'Poppins', sans-serif;
 }
 
-h1 {
-    color: #e63946;
-    text-align: center;
-    font-weight: 700;
+.stButton>button {
+  background-color: #FF4B2B;
+  color: white;
+  border-radius: 10px;
+  padding: 10px 20px;
+  border: none;
 }
 
-div.stButton > button {
-    background-color: #457b9d;
-    color: white;
-    border-radius: 12px;
-    font-weight: 600;
+.stButton>button:hover {
+  background-color: #ff6b4a;
 }
-div.stButton > button:hover {
-    background-color: #1d3557;
-}
+
