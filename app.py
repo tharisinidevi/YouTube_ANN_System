@@ -84,10 +84,13 @@ def normalize(value, max_value):
 def reset_inputs():
     """Reset all user inputs"""
     for key in list(st.session_state.keys()):
-        if key.startswith("comment_") or key in ["views", "likes", "comments_count"]:
+        if key.startswith("comment_"):
             st.session_state[key] = ""
+        elif key in ["views", "likes", "comments_count"]:
+            st.session_state[key] = 0
     st.session_state.reset_flag = True
-    st.rerun()
+    st.rerun()  # works in latest Streamlit
+
 
 # ======================
 # Prediction Section
@@ -182,6 +185,7 @@ if predict_btn:
         st.write(t)
 
     st.info("💡 ANN model weighting: Views (50%) • Likes (30%) • Sentiment (20%)")
+
 
 
 
