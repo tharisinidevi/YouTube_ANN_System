@@ -87,7 +87,7 @@ def reset_inputs():
         if key.startswith("comment_") or key in ["views", "likes", "comments_count"]:
             st.session_state[key] = ""
     st.session_state.reset_flag = True
-    st.experimental_rerun()
+    st.rerun()
 
 # ======================
 # Prediction Section
@@ -182,6 +182,7 @@ if predict_btn:
         st.write(t)
 
     st.info("💡 ANN model weighting: Views (50%) • Likes (30%) • Sentiment (20%)")
+
 
 
 
