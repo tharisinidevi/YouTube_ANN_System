@@ -76,7 +76,8 @@ col1, col2 = st.columns([1, 1])
 with col1:
     predict_btn = st.button("🔮 Predict Popularity")
 with col2:
-    reset_btn = st.button("🔁 Reset")
+    reset_btn = st.button("🔁 Reset", on_click=reset_inputs)
+    
 
 if predict_btn:
     avg_sentiment, num_comments = get_avg_sentiment(comment_inputs)
@@ -159,6 +160,7 @@ if predict_btn:
         st.write(t)
 
     st.info("💡 Insights weighted: Views (50%) • Likes (30%) • Sentiment (20%).")
+
 
 
 
