@@ -160,9 +160,7 @@ if predict_btn:
 
     st.info("💡 Insights weighted: Views (50%) • Likes (30%) • Sentiment (20%).")
 
-elif st.button("🔁 Reset Form"):
-    st.session_state.clear()
-    st.experimental_rerun()
+
 
 
 
