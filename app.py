@@ -37,8 +37,15 @@ local_css("style.css")
 # RESET BUTTON FUNCTION
 # ======================
 def reset_inputs():
-    st.session_state.clear()
-    st.rerun()
+    """Reset all user inputs"""
+    for key in list(st.session_state.keys()):
+        if key.startswith("comment_"):
+            st.session_state[key] = ""
+        elif key in ["views", "likes", "comments_count"]:
+            st.session_state[key] = 0
+    st.session_state.reset_flag = True
+    st.rerun()  # works in latest Streamlit
+
 
 # ======================
 # Input Section
@@ -196,6 +203,7 @@ if predict_btn:
 
     for tip in tips:
         st.write(tip)
+
 
 
 
