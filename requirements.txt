@@ -3,9 +3,13 @@ tensorflow
 scikit-learn
 textblob
 joblib
+nltk
 numpy
 pandas
 plotly
 matplotlib
+
+
+
 
 
