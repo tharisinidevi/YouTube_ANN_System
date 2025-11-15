@@ -1,9 +1,26 @@
+# app.py (updated sentiment handling; full file)
 import streamlit as st
 import numpy as np
 import joblib
 from tensorflow.keras.models import load_model
 from textblob import TextBlob
 import pandas as pd
+import re
+
+# Try to import VADER (nltk). If available, we'll use it (better for social text).
+use_vader = False
+try:
+    import nltk
+    from nltk.sentiment import SentimentIntensityAnalyzer
+    # download lexicon if not present
+    try:
+        nltk.data.find("sentiment/vader_lexicon.zip")
+    except Exception:
+        nltk.download("vader_lexicon")
+    sia = SentimentIntensityAnalyzer()
+    use_vader = True
+except Exception:
+    use_vader = False
 
 # ======================
 # Load Model and Scaler
@@ -22,7 +39,7 @@ st.title("🎬 YouTube Video Popularity Predictor (with Smart Recommendations)")
 st.markdown("---")
 
 # ======================
-# Optional CSS
+# Optional CSS loader
 # ======================
 def local_css(file_name):
     try:
@@ -43,9 +60,8 @@ def reset_inputs():
             st.session_state[key] = ""
         elif key in ["views", "likes", "comments_count"]:
             st.session_state[key] = 0
-    st.session_state.reset_flag = True
-    st.rerun()  # works in latest Streamlit
-
+    # trigger rerun to clear widgets
+    st.rerun()
 
 # ======================
 # Input Section
@@ -65,24 +81,53 @@ st.subheader("💬 Enter at Least TWO Comments (Required)")
 
 cols = st.columns(2)
 comment_inputs = []
-
 for i in range(10):
     with cols[i % 2]:
         comment = st.text_input(f"Comment {i + 1}", "", key=f"comment_{i}")
         comment_inputs.append(comment)
 
 # ======================
-# Helper Functions
+# Helper / Sentiment Functions
 # ======================
-def get_avg_sentiment(comments_list):
-    sentiments = []
-    for comment in comments_list:
-        if comment.strip():
-            polarity = TextBlob(comment).sentiment.polarity
-            sentiments.append(polarity)
-    if sentiments:
-        return np.mean(sentiments), len(sentiments)
-    return 0.0, 0
+def clean_comment(text):
+    # remove URLs, extra whitespace, control chars
+    text = re.sub(r"http\S+|www\.\S+", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+def comment_sentiment_vader(text):
+    """Return VADER compound score (-1..1)"""
+    return sia.polarity_scores(text)["compound"]
+
+def comment_sentiment_textblob(text):
+    """Return TextBlob polarity (-1..1)"""
+    return TextBlob(text).sentiment.polarity
+
+def get_sentiment_scores(comments_list):
+    """
+    Returns:
+      scores: list of (clean_text, score) for each non-empty comment
+      avg_score: mean score (0.0 if none)
+    Preference: VADER if available, else TextBlob.
+    """
+    scores = []
+    for c in comments_list:
+        c_clean = clean_comment(c)
+        if not c_clean:
+            continue
+        if use_vader:
+            try:
+                s = comment_sentiment_vader(c_clean)
+            except Exception:
+                s = comment_sentiment_textblob(c_clean)
+        else:
+            s = comment_sentiment_textblob(c_clean)
+        scores.append((c_clean, s))
+    if scores:
+        avg = np.mean([s for (_, s) in scores])
+    else:
+        avg = 0.0
+    return scores, avg
 
 def normalize(value, max_value):
     if max_value == 0:
@@ -93,52 +138,49 @@ def normalize(value, max_value):
 # Prediction Section
 # ======================
 st.markdown("---")
-
 col1, col2 = st.columns([1, 1])
 with col1:
     predict_btn = st.button("🔮 Predict Popularity")
-
 with col2:
     reset_btn = st.button("🔁 Reset", on_click=reset_inputs)
 
-# ======================
-# RUN PREDICTION
-# ======================
 if predict_btn:
 
-    # ------------------------------
-    # VALIDATION CHECKS
-    # ------------------------------
+    # VALIDATION
     if views == 0 or likes == 0 or comments_count == 0:
         st.error("⚠️ Please fill in **Views**, **Likes**, and **Total Comments Count** before predicting.")
         st.stop()
 
-    # At least 2 comments required
     non_empty_comments = [c for c in comment_inputs if c.strip() != ""]
     if len(non_empty_comments) < 2:
         st.error("⚠️ Please enter **at least TWO comments** for sentiment analysis.")
         st.stop()
 
-    # ------------------------------
-    # Sentiment Calculation
-    # ------------------------------
-    avg_sentiment, num_comments = get_avg_sentiment(comment_inputs)
+    # Get sentiment scores (per-comment)
+    scores, avg_sentiment = get_sentiment_scores(non_empty_comments)
+    num_comments = len(scores)
+
+    # Show per-comment sentiment (debug/insight)
+    with st.expander(f"🔎 Show {num_comments} comment sentiment scores"):
+        st.write("Using:", "VADER" if use_vader else "TextBlob")
+        for idx, (txt, s) in enumerate(scores, start=1):
+            st.write(f"**Comment {idx}** (score={s:.3f}): {txt}")
 
     # Prepare ANN input
     user_data = np.array([[views, likes, comments_count, avg_sentiment]])
     user_data_scaled = scaler.transform(user_data)
     prediction = model.predict(user_data_scaled)
     popularity_class = np.argmax(prediction, axis=1)[0]
+    confidence = np.max(prediction)
 
-    # Weighted score
-    max_views, max_likes, max_sentiment = 1_000_000, 50_000, 1.0
+    # Weighted score (display-only)
+    max_views, max_likes, max_sent = 1_000_000, 50_000, 1.0
     views_rank = normalize(views, max_views)
     likes_rank = normalize(likes, max_likes)
-    sentiment_rank = normalize(avg_sentiment, max_sentiment)
-
+    sentiment_rank = (avg_sentiment + 1) / 2  # convert -1..1 to 0..1 for the weighted score
     popularity_score = (0.5 * views_rank) + (0.3 * likes_rank) + (0.2 * sentiment_rank)
 
-    # Result label
+    # Labels
     if popularity_class == 0:
         result, emoji = "Low Popularity", "📉"
     elif popularity_class == 1:
@@ -146,63 +188,52 @@ if predict_btn:
     else:
         result, emoji = "High Popularity", "🔥"
 
-    # ======================
-    # Show Results
-    # ======================
+    # DISPLAY
     st.success(f"{emoji} **Predicted Popularity: {result}**")
+    st.write(f"🤖 Model confidence: **{confidence:.2%}**")
+    st.subheader("📊 Video Performance Overview")
+    st.write(f"👀 **Views:** {views:,} (normalized: {views_rank:.2f})")
+    st.write(f"👍 **Likes:** {likes:,} (normalized: {likes_rank:.2f})")
+    st.write(f"💬 **Total Comments:** {comments_count:,}")
+    st.write(f"🧠 **Average Sentiment (raw -1..1):** {avg_sentiment:.3f}")
+    st.write(f"📈 **Weighted Popularity Score (0..1):** {popularity_score:.3f}")
+    st.write(f"💬 Comments Analyzed (used for sentiment): {num_comments}")
 
-    # --------------------------------
-    # 📊 Visualization Section
-    # --------------------------------
-    st.subheader("📊 Video Metrics Visualization")
+    if num_comments == 0:
+        st.warning("⚠️ No valid comments after cleaning — sentiment not factored.")
 
-    df = pd.DataFrame({
-        "Metric": ["Views", "Likes", "Total Comments"],
+    # Visualization
+    df_plot = pd.DataFrame({
+        "Metric": ["Views", "Likes", "Comments"],
         "Value": [views, likes, comments_count]
     })
+    st.bar_chart(df_plot.set_index("Metric"))
 
-    st.bar_chart(df.set_index("Metric"))
-
-    # --------------------------------
-    # 📌 Performance Overview
-    # --------------------------------
-    st.subheader("📈 Performance Breakdown")
-
-    st.write(f"👀 **Views:** {views:,}")
-    st.write(f"👍 **Likes:** {likes:,}")
-    st.write(f"💬 **Total Comments:** {comments_count:,}")
-    st.write(f"🧠 **Average Sentiment Score:** {avg_sentiment:.2f}")
-    st.write(f"📊 **Weighted Popularity Score:** {popularity_score:.2f}")
-    st.write(f"💬 Comments Analyzed: {num_comments}")
-
-    # ======================
-    # Recommendations
-    # ======================
+    # Recommendations (same as before, but using sentiment_rank converted 0..1)
     st.subheader("📌 Personalized Recommendations")
     tips = []
-
-    # Views advice
     if views_rank < 0.3:
-        tips.append("📉Low Views — improve SEO, use better thumbnails, or share more widely.")
+        tips.append("📉 Low Views — improve SEO, thumbnails, and promotion.")
     elif views_rank < 0.7:
-        tips.append("👀Moderate Views — optimize titles and increase watch time.")
+        tips.append("👀 Moderate Views — optimize retention & titles.")
     else:
-        tips.append("🔥High Views — great! Continue similar content.")
+        tips.append("🔥 High Views — sustain your strategy and experiment.")
 
-    # Likes advice
     if likes_rank < 0.3:
-        tips.append("👍Low Likes — ask viewers to like your video and improve early hooks.")
+        tips.append("👍 Low Likes — stronger CTAs & hooks in first 10s.")
     else:
-        tips.append("🌟Strong Likes — your audience is engaged!")
+        tips.append("🌟 Likes OK — maintain engagement style.")
 
-    # Sentiment advice
-    if sentiment_rank < 0.3:
-        tips.append("😟Low Sentiment — review feedback and improve clarity.")
+    if sentiment_rank < 0.4:
+        tips.append("😟 Low Sentiment — address criticism; improve clarity and tone.")
+    elif sentiment_rank < 0.7:
+        tips.append("🙂 Mixed Sentiment — tweak pacing and clarity.")
     else:
-        tips.append("🥰Positive Sentiment — viewers enjoy your video tone!")
+        tips.append("🥰 Positive Sentiment — great reception!")
 
-    for tip in tips:
-        st.write(tip)
+    for t in tips:
+        st.write(t)
+
 
 
 
