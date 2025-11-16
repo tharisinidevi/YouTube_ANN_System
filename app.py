@@ -86,9 +86,7 @@ for i in range(10):
         comment_inputs.append(
             st.text_input(f"Comment {i + 1}", key=f"comment_{i}")
         )
-if st.session_state.get("force_rerun", False):
-    st.session_state["force_rerun"] = False
-    st.experimental_rerun()
+
 
 # ======================
 # Sentiment Helpers
@@ -196,6 +194,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
