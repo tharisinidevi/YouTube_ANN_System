@@ -41,9 +41,6 @@ st.set_page_config(page_title="YouTube Popularity Predictor", page_icon="🎬", 
 st.title("🎬 YouTube Popularity Predictor (FYP ANN Version)")
 st.markdown("---")
 
-if st.session_state.get("force_rerun", False):
-    st.session_state["force_rerun"] = False
-    st.experimental_rerun()
 
 
 # ======================
@@ -198,6 +195,10 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
+if st.session_state.get("force_rerun", False):
+    st.session_state["force_rerun"] = False
+    st.experimental_rerun()
 
 
 
