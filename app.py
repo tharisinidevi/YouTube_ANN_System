@@ -38,9 +38,9 @@ scaler = joblib.load(SCALER_PATH)
 # ======================
 if "reset" in st.session_state and st.session_state.reset:
     # Reset all numeric inputs
-    st.session_state["views"] = "
-    st.session_state["likes"] = "
-    st.session_state["comments_count"] = "
+    st.session_state["views"] = 0
+    st.session_state["likes"] = 0
+    st.session_state["comments_count"] = 0
 
     # Reset all comment fields
     for key in list(st.session_state.keys()):
@@ -203,6 +203,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
