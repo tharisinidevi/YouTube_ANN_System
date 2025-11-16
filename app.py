@@ -8,9 +8,6 @@ from textblob import TextBlob
 import pandas as pd
 import re
 
-if "force_rerun" not in st.session_state:
-    st.session_state["force_rerun"] = False
-
 # Try VADER sentiment
 use_vader = False
 try:
@@ -35,15 +32,6 @@ model = load_model(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
 
 # ======================
-# Streamlit Setup
-# ======================
-st.set_page_config(page_title="YouTube Popularity Predictor", page_icon="🎬", layout="centered")
-st.title("🎬 YouTube Popularity Predictor (FYP ANN Version)")
-st.markdown("---")
-
-
-
-# ======================
 # Optional CSS styling
 # ======================
 def local_css(file_name):
@@ -54,19 +42,24 @@ def local_css(file_name):
         st.warning("⚠️ style.css not found — continuing without custom theme.")
 
 local_css("style.css")
+
+# ======================
+# Streamlit Setup
+# ======================
+st.set_page_config(page_title="YouTube Popularity Predictor", page_icon="🎬", layout="centered")
+st.title("🎬 YouTube Popularity Predictor (FYP ANN Version)")
+st.markdown("---")
+
+
 def reset_inputs():
-    # Reset numeric fields
-    st.session_state.views = ""
-    st.session_state.likes = ""
-    st.session_state.comments_count = ""
-
-    # Reset comment fields
-    for i in range(10):
-        st.session_state[f"comment_{i}"] = ""
-
-    # Trigger page refresh
-    st.session_state["force_rerun"] = True
-
+    """Reset all user inputs"""
+    for key in list(st.session_state.keys()):
+        if key.startswith("comment_"):
+            st.session_state[key] = ""
+        elif key in ["views", "likes", "comments_count"]:
+            st.session_state[key] = 0
+    st.session_state.reset_flag = True
+    st.rerun()  # works in latest Streamlit
 
 # ======================
 # User Inputs
@@ -87,7 +80,6 @@ for i in range(10):
         comment_inputs.append(
             st.text_input(f"Comment {i + 1}", key=f"comment_{i}")
         )
-
 
 # ======================
 # Sentiment Helpers
@@ -173,8 +165,6 @@ if predict_btn:
         for i, s in enumerate(sentiments, start=1):
             st.write(f"Comment {i}: Sentiment = {s:.3f}")
 
-    
-
     # Recommendations
     st.subheader("📌 Recommendations")
 
@@ -196,9 +186,6 @@ if predict_btn:
     for t in tips:
         st.write(t)
 
-if st.session_state.get("force_rerun", False):
-    st.session_state["force_rerun"] = False
-    st.experimental_rerun()
 
 
 
