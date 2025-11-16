@@ -159,12 +159,7 @@ if predict_btn:
         for i, s in enumerate(sentiments, start=1):
             st.write(f"Comment {i}: Sentiment = {s:.3f}")
 
-    # Simple chart
-    df_plot = pd.DataFrame({
-        "Metric": ["Views", "Likes", "Comments"],
-        "Value": [views, likes, comments_count]
-    })
-    st.bar_chart(df_plot.set_index("Metric"))
+    
 
     # Recommendations
     st.subheader("📌 Recommendations")
@@ -186,6 +181,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
