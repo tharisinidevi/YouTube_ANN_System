@@ -1,4 +1,4 @@
-# app.py — FINAL VERSION (MATCHES YOUR ANN MODEL EXACTLY)
+# app.py — FINAL VERSION WITH FIXED RESET BUTTON
 
 import streamlit as st
 import numpy as np
@@ -22,6 +22,7 @@ try:
 except:
     use_vader = False
 
+
 # ======================
 # Load ANN Model + Scaler
 # ======================
@@ -30,6 +31,26 @@ SCALER_PATH = "model/scaler.pkl"
 
 model = load_model(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
+
+
+# ======================
+# GLOBAL RESET HANDLER
+# ======================
+if "reset" in st.session_state and st.session_state.reset:
+    # Reset all numeric inputs
+    st.session_state["views"] = 0
+    st.session_state["likes"] = 0
+    st.session_state["comments_count"] = 0
+
+    # Reset all comment fields
+    for key in list(st.session_state.keys()):
+        if key.startswith("comment_"):
+            st.session_state[key] = ""
+
+    # clear reset flag
+    st.session_state.reset = False
+    st.rerun()
+
 
 # ======================
 # Optional CSS styling
@@ -41,7 +62,9 @@ def local_css(file_name):
     except FileNotFoundError:
         st.warning("⚠️ style.css not found — continuing without custom theme.")
 
+
 local_css("style.css")
+
 
 # ======================
 # Streamlit Setup
@@ -51,24 +74,14 @@ st.title("🎬 YouTube Popularity Predictor (FYP ANN Version)")
 st.markdown("---")
 
 
-def reset_inputs():
-    """Reset all user inputs"""
-    for key in list(st.session_state.keys()):
-        if key.startswith("comment_"):
-            st.session_state[key] = ""
-        elif key in ["views", "likes", "comments_count"]:
-            st.session_state[key] = 0
-    st.session_state.reset_flag = True
-    st.rerun()  # works in latest Streamlit
-
 # ======================
 # User Inputs
 # ======================
 st.subheader("📊 Enter Video Metrics")
 
-views = st.number_input("Total Views", min_value=0, step=1)
-likes = st.number_input("Total Likes", min_value=0, step=1)
-comments_count = st.number_input("Total Comments Count", min_value=0, step=1)
+views = st.number_input("Total Views", min_value=0, step=1, key="views")
+likes = st.number_input("Total Likes", min_value=0, step=1, key="likes")
+comments_count = st.number_input("Total Comments Count", min_value=0, step=1, key="comments_count")
 
 st.markdown("---")
 st.subheader("💬 Enter at least TWO comments")
@@ -81,6 +94,7 @@ for i in range(10):
             st.text_input(f"Comment {i + 1}", key=f"comment_{i}")
         )
 
+
 # ======================
 # Sentiment Helpers
 # ======================
@@ -88,11 +102,13 @@ def clean_comment(text):
     text = re.sub(r"http\S+|www\.\S+", "", text)
     return re.sub(r"\s+", " ", text).strip()
 
+
 def get_raw_sentiment(text):
     """Return sentiment score (-1 to 1) using VADER or TextBlob."""
     if use_vader:
         return sia.polarity_scores(text)["compound"]
     return TextBlob(text).sentiment.polarity
+
 
 def convert_sentiment_to_class(s):
     """Convert -1..1 sentiment to model classes 0,1,2."""
@@ -103,13 +119,15 @@ def convert_sentiment_to_class(s):
     else:
         return 2        # positive
 
+
 # ======================
 # Prediction Logic
 # ======================
 st.markdown("---")
 col1, col2 = st.columns(2)
 predict_btn = col1.button("🔮 Predict Popularity")
-col2.button("🔁 Reset", on_click=reset_inputs)
+col2.button("🔁 Reset", on_click=lambda: st.session_state.update({"reset": True}))
+
 
 if predict_btn:
 
