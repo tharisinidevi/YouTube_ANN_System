@@ -8,6 +8,9 @@ from textblob import TextBlob
 import pandas as pd
 import re
 
+if "force_rerun" not in st.session_state:
+    st.session_state["force_rerun"] = False
+
 # Try VADER sentiment
 use_vader = False
 try:
@@ -51,18 +54,27 @@ def local_css(file_name):
 
 local_css("style.css")
 def reset_inputs():
-    for key in list(st.session_state.keys()):
-        st.session_state[key] = ""
-    st.rerun()
+    # Reset numeric fields
+    st.session_state.views = ""
+    st.session_state.likes = ""
+    st.session_state.comments_count = ""
+
+    # Reset comment fields
+    for i in range(10):
+        st.session_state[f"comment_{i}"] = ""
+
+    # Trigger page refresh
+    st.session_state["force_rerun"] = True
+
 
 # ======================
 # User Inputs
 # ======================
 st.subheader("📊 Enter Video Metrics")
 
-views = st.number_input("Total Views", min_value=0, step=1)
-likes = st.number_input("Total Likes", min_value=0, step=1)
-comments_count = st.number_input("Total Comments Count", min_value=0, step=1)
+views = st.number_input("Total Views", min_value="", step=1)
+likes = st.number_input("Total Likes", min_value="", step=1)
+comments_count = st.number_input("Total Comments Count", min_value="", step=1)
 
 st.markdown("---")
 st.subheader("💬 Enter at least TWO comments")
@@ -74,6 +86,9 @@ for i in range(10):
         comment_inputs.append(
             st.text_input(f"Comment {i + 1}", key=f"comment_{i}")
         )
+if st.session_state.get("force_rerun", False):
+    st.session_state["force_rerun"] = False
+    st.experimental_rerun()
 
 # ======================
 # Sentiment Helpers
@@ -181,6 +196,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
