@@ -38,6 +38,18 @@ st.set_page_config(page_title="YouTube Popularity Predictor", page_icon="🎬", 
 st.title("🎬 YouTube Popularity Predictor (FYP ANN Version)")
 st.markdown("---")
 
+
+# ======================
+# Optional CSS styling
+# ======================
+def local_css(file_name):
+    try:
+        with open(file_name) as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.warning("⚠️ style.css not found — continuing without custom theme.")
+
+local_css("style.css")
 def reset_inputs():
     for key in list(st.session_state.keys()):
         st.session_state[key] = ""
@@ -174,6 +186,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
