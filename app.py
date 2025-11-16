@@ -38,9 +38,9 @@ scaler = joblib.load(SCALER_PATH)
 # ======================
 if "reset" in st.session_state and st.session_state.reset:
     # Reset all numeric inputs
-    st.session_state["views"] = 0
-    st.session_state["likes"] = 0
-    st.session_state["comments_count"] = 0
+    st.session_state["views"] = "
+    st.session_state["likes"] = "
+    st.session_state["comments_count"] = "
 
     # Reset all comment fields
     for key in list(st.session_state.keys()):
@@ -70,7 +70,7 @@ local_css("style.css")
 # Streamlit Setup
 # ======================
 st.set_page_config(page_title="YouTube Popularity Predictor", page_icon="🎬", layout="centered")
-st.title("🎬 YouTube Popularity Predictor (FYP ANN Version)")
+st.title("🎬 YouTube Popularity Predicto)")
 st.markdown("---")
 
 
@@ -203,6 +203,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
