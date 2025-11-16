@@ -72,9 +72,9 @@ def reset_inputs():
 # ======================
 st.subheader("📊 Enter Video Metrics")
 
-views = st.number_input("Total Views", min_value="", step=1)
-likes = st.number_input("Total Likes", min_value="", step=1)
-comments_count = st.number_input("Total Comments Count", min_value="", step=1)
+views = st.number_input("Total Views", min_value=0, step=1)
+likes = st.number_input("Total Likes", min_value=0, step=1)
+comments_count = st.number_input("Total Comments Count", min_value=0, step=1)
 
 st.markdown("---")
 st.subheader("💬 Enter at least TWO comments")
@@ -194,6 +194,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
