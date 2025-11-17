@@ -70,7 +70,7 @@ local_css("style.css")
 # Streamlit Setup
 # ======================
 st.set_page_config(page_title="YouTube Popularity Predictor", page_icon="🎬", layout="centered")
-st.title("🎬 YouTube Popularity Predicto)")
+st.title("🎬 YouTube Popularity Predicton")
 st.markdown("---")
 
 
@@ -203,6 +203,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
