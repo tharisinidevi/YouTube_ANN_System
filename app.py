@@ -1,4 +1,4 @@
-# app.py — FINAL VERSION WITH FIXED RESET BUTTON
+# app.py — FINAL VERSION (SENTIMENT FIXED - OPTION A)
 
 import streamlit as st
 import numpy as np
@@ -37,17 +37,14 @@ scaler = joblib.load(SCALER_PATH)
 # GLOBAL RESET HANDLER
 # ======================
 if "reset" in st.session_state and st.session_state.reset:
-    # Reset all numeric inputs
     st.session_state["views"] = 0
     st.session_state["likes"] = 0
     st.session_state["comments_count"] = 0
 
-    # Reset all comment fields
     for key in list(st.session_state.keys()):
         if key.startswith("comment_"):
             st.session_state[key] = ""
 
-    # clear reset flag
     st.session_state.reset = False
     st.rerun()
 
@@ -70,7 +67,7 @@ local_css("style.css")
 # Streamlit Setup
 # ======================
 st.set_page_config(page_title="YouTube Popularity Predictor", page_icon="🎬", layout="centered")
-st.title("🎬 YouTube Popularity Predicton")
+st.title("🎬 YouTube Popularity Prediction")
 st.markdown("---")
 
 
@@ -96,7 +93,7 @@ for i in range(10):
 
 
 # ======================
-# Sentiment Helpers
+# Sentiment Helpers (FIXED)
 # ======================
 def clean_comment(text):
     text = re.sub(r"http\S+|www\.\S+", "", text)
@@ -111,13 +108,14 @@ def get_raw_sentiment(text):
 
 
 def convert_sentiment_to_class(s):
-    """Convert -1..1 sentiment to model classes 0,1,2."""
+    """Convert -1..1 sentiment to classes 0,1,2."""
     if s < -0.25:
         return 0        # negative
     elif s <= 0.25:
         return 1        # neutral
     else:
         return 2        # positive
+
 
 def sentiment_rank_from_avg(avg_sentiment):
     """
@@ -127,6 +125,7 @@ def sentiment_rank_from_avg(avg_sentiment):
     sentiment_class = convert_sentiment_to_class(avg_sentiment)
     sentiment_rank = sentiment_class / 2  # 0.0, 0.5, 1.0
     return sentiment_rank, sentiment_class
+
 
 # ======================
 # Prediction Logic
@@ -157,19 +156,17 @@ if predict_btn:
 
     avg_sentiment = np.mean(sentiments)
 
-     # ✅ FIXED SENTIMENT PIPELINE
+    # ✅ FIXED SENTIMENT PIPELINE
     sentiment_rank, sentiment_class = sentiment_rank_from_avg(avg_sentiment)
 
-    # ANN expects → [views, likes, comment_count, sentiment_class]
+    # ANN expects → [views, likes, comment_count, sentiment_rank]
     X = np.array([[views, likes, comments_count, sentiment_rank]])
     X_scaled = scaler.transform(X)
 
-    # Predict
     pred = model.predict(X_scaled)
     pred_class = np.argmax(pred)
     confidence = np.max(pred)
 
-    # Labels
     labels = {
         0: ("Low Popularity", "📉"),
         1: ("Medium Popularity", "📊"),
@@ -178,20 +175,19 @@ if predict_btn:
 
     result_text, emoji = labels[pred_class]
 
-    # Display
     st.success(f"{emoji} **Predicted Popularity: {result_text}**")
     st.write(f"🤖 Model Confidence: **{confidence:.2%}**")
 
     st.markdown("---")
     st.subheader("📌 Sentiment Summary")
     st.write(f"Raw Avg Sentiment (-1..1): **{avg_sentiment:.3f}**")
-    st.write(f"Sentiment Class Used for ANN: **{sentiment_class}**")
+    st.write(f"Sentiment Class (0=Neg,1=Neu,2=Pos): **{sentiment_class}**")
+    st.write(f"Sentiment Rank Used for ANN: **{sentiment_rank}**")
 
     with st.expander("View Analyzed Comments"):
         for i, s in enumerate(sentiments, start=1):
             st.write(f"Comment {i}: Sentiment = {s:.3f}")
 
-    # Recommendations
     st.subheader("📌 Recommendations")
 
     tips = []
