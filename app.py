@@ -119,6 +119,14 @@ def convert_sentiment_to_class(s):
     else:
         return 2        # positive
 
+def sentiment_rank_from_avg(avg_sentiment):
+    """
+    FINAL FIX:
+    Convert raw avg sentiment → training-compatible sentiment_rank
+    """
+    sentiment_class = convert_sentiment_to_class(avg_sentiment)
+    sentiment_rank = sentiment_class / 2  # 0.0, 0.5, 1.0
+    return sentiment_rank, sentiment_class
 
 # ======================
 # Prediction Logic
@@ -149,11 +157,11 @@ if predict_btn:
 
     avg_sentiment = np.mean(sentiments)
 
-    # Convert to ANN CLASS (0,1,2)
-    sentiment_class = convert_sentiment_to_class(avg_sentiment)
+     # ✅ FIXED SENTIMENT PIPELINE
+    sentiment_rank, sentiment_class = sentiment_rank_from_avg(avg_sentiment)
 
     # ANN expects → [views, likes, comment_count, sentiment_class]
-    X = np.array([[views, likes, comments_count, sentiment_class]])
+    X = np.array([[views, likes, comments_count, sentiment_rank]])
     X_scaled = scaler.transform(X)
 
     # Predict
@@ -203,6 +211,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
