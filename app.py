@@ -8,6 +8,8 @@ import joblib
 from tensorflow.keras.models import load_model
 from textblob import TextBlob
 import re
+import plotly.graph_objects as go
+
 
 # ======================
 # Load Local CSS
@@ -371,3 +373,4 @@ with tab_insights:
 
     for rec in recommendations:
         st.write(rec)
+
