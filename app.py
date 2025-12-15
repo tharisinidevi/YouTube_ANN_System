@@ -223,21 +223,61 @@ with tab_predict:
 # MODEL PERFORMANCE TAB
 # ======================
 with tab_performance:
-    st.header("📊 Model Performance")
+    st.header("📊 Model Performance Evaluation")
 
     st.write("""
-    The ANN model was evaluated using standard classification metrics.
+    This section evaluates the ANN model using a held-out test dataset.
+    Performance metrics are calculated based on true labels and predicted outputs.
     """)
+
+    # ======================
+    # Model Predictions
+    # ======================
+    y_pred_prob = model.predict(X_test)
+    y_pred = np.argmax(y_pred_prob, axis=1)
+
+    # ======================
+    # Metrics Calculation
+    # ======================
+    acc = accuracy_score(y_test, y_pred)
+    prec = precision_score(y_test, y_pred, average="weighted", zero_division=0)
+    rec = recall_score(y_test, y_pred, average="weighted", zero_division=0)
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Accuracy", "92%")
-    col2.metric("Precision", "90%")
-    col3.metric("Recall", "89%")
+    col1.metric("Accuracy", f"{acc*100:.2f}%")
+    col2.metric("Precision", f"{prec*100:.2f}%")
+    col3.metric("Recall", f"{rec*100:.2f}%")
+
+    st.markdown("---")
+
+    # ======================
+    # Confusion Matrix Plot
+    # ======================
+    st.subheader("📌 Confusion Matrix")
+
+    cm = confusion_matrix(y_test, y_pred)
+
+    fig_cm = ff.create_annotated_heatmap(
+        z=cm,
+        x=["Low", "Medium", "High"],
+        y=["Low", "Medium", "High"],
+        colorscale="Blues",
+        showscale=True
+    )
+
+    fig_cm.update_layout(
+        xaxis_title="Predicted Label",
+        yaxis_title="True Label",
+        height=450
+    )
+
+    st.plotly_chart(fig_cm, use_container_width=True)
 
     st.info("""
-    The integration of sentiment features improves predictive performance
-    compared to using engagement metrics alone.
+    Results show that incorporating sentiment features alongside engagement metrics
+    improves the ANN model’s ability to correctly classify video popularity levels.
     """)
+
 
 # ======================
 # INSIGHTS & RECOMMENDATIONS TAB
@@ -373,4 +413,5 @@ with tab_insights:
 
     for rec in recommendations:
         st.write(rec)
+
 
