@@ -1,14 +1,33 @@
-# app.py — FINAL VERSION (SENTIMENT NORMALIZATION FIXED)
+# app.py — FINAL VERSION (MATCHES rank(pct=True) TRAINING LOGIC)
 
 import streamlit as st
 import numpy as np
 import joblib
 from tensorflow.keras.models import load_model
 from textblob import TextBlob
-import pandas as pd
 import re
 
-# Try VADER sentiment
+# ======================
+# Load ANN Model + Scaler
+# ======================
+MODEL_PATH = "model/ann_model.h5"
+SCALER_PATH = "model/scaler.pkl"
+
+model = load_model(MODEL_PATH)
+scaler = joblib.load(SCALER_PATH)
+
+# ======================
+# TRAINING REFERENCE VALUES
+# 🔴 MUST MATCH TRAINING DATA
+# ======================
+MAX_VIEWS = 5_000_000
+MAX_LIKES = 120_000
+MAX_COMMENTS = 30_000
+MAX_AVG_SENTIMENT = 2.0
+
+# ======================
+# Sentiment Engine
+# ======================
 use_vader = False
 try:
     import nltk
@@ -24,53 +43,6 @@ except:
 
 
 # ======================
-# Load ANN Model + Scaler
-# ======================
-MODEL_PATH = "model/ann_model.h5"
-SCALER_PATH = "model/scaler.pkl"
-
-model = load_model(MODEL_PATH)
-scaler = joblib.load(SCALER_PATH)
-
-
-# ======================
-# SENTIMENT NORMALIZATION CONSTANT
-# (MUST MATCH TRAINING DATA)
-# ======================
-MAX_AVG_SENTIMENT = 2.0   # 🔴 REPLACE with exact max from training if different
-
-
-# ======================
-# GLOBAL RESET HANDLER
-# ======================
-if "reset" in st.session_state and st.session_state.reset:
-    st.session_state["views"] = 0
-    st.session_state["likes"] = 0
-    st.session_state["comments_count"] = 0
-
-    for key in list(st.session_state.keys()):
-        if key.startswith("comment_"):
-            st.session_state[key] = ""
-
-    st.session_state.reset = False
-    st.rerun()
-
-
-# ======================
-# Optional CSS styling
-# ======================
-def local_css(file_name):
-    try:
-        with open(file_name) as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        st.warning("⚠️ style.css not found — continuing without custom theme.")
-
-
-local_css("style.css")
-
-
-# ======================
 # Streamlit Setup
 # ======================
 st.set_page_config(page_title="YouTube Popularity Predictor", page_icon="🎬", layout="centered")
@@ -83,9 +55,9 @@ st.markdown("---")
 # ======================
 st.subheader("📊 Enter Video Metrics")
 
-views = st.number_input("Total Views", min_value=0, step=1, key="views")
-likes = st.number_input("Total Likes", min_value=0, step=1, key="likes")
-comments_count = st.number_input("Total Comments Count", min_value=0, step=1, key="comments_count")
+views = st.number_input("Total Views", min_value=0, step=1)
+likes = st.number_input("Total Likes", min_value=0, step=1)
+comments_count = st.number_input("Total Comments", min_value=0, step=1)
 
 st.markdown("---")
 st.subheader("💬 Enter at least TWO comments")
@@ -94,9 +66,7 @@ cols = st.columns(2)
 comment_inputs = []
 for i in range(10):
     with cols[i % 2]:
-        comment_inputs.append(
-            st.text_input(f"Comment {i + 1}", key=f"comment_{i}")
-        )
+        comment_inputs.append(st.text_input(f"Comment {i+1}"))
 
 
 # ======================
@@ -108,7 +78,6 @@ def clean_comment(text):
 
 
 def get_raw_sentiment(text):
-    """Return sentiment score (-1 to 1) using VADER or TextBlob."""
     if use_vader:
         return sia.polarity_scores(text)["compound"]
     return TextBlob(text).sentiment.polarity
@@ -117,46 +86,37 @@ def get_raw_sentiment(text):
 # ======================
 # Prediction Logic
 # ======================
-st.markdown("---")
-col1, col2 = st.columns(2)
-predict_btn = col1.button("🔮 Predict Popularity")
-col2.button("🔁 Reset", on_click=lambda: st.session_state.update({"reset": True}))
-
-
-if predict_btn:
-
-    if views == 0 or likes == 0 or comments_count == 0:
-        st.error("⚠️ Please enter Views, Likes, and Comments Count.")
-        st.stop()
+if st.button("🔮 Predict Popularity"):
 
     non_empty = [c for c in comment_inputs if c.strip() != ""]
     if len(non_empty) < 2:
-        st.error("⚠️ Enter at least TWO non-empty comments.")
+        st.error("⚠️ Please enter at least TWO comments.")
         st.stop()
 
-    # Compute sentiment of each comment
-    sentiments = []
-    for c in non_empty:
-        c_clean = clean_comment(c)
-        if c_clean:
-            sentiments.append(get_raw_sentiment(c_clean))
-
+    # ---- Compute avg sentiment ----
+    sentiments = [get_raw_sentiment(clean_comment(c)) for c in non_empty]
     avg_sentiment = np.mean(sentiments)
 
-    # ======================
-    # ✅ FINAL SENTIMENT FIX
-    # ======================
-    if MAX_AVG_SENTIMENT != 0:
-        sentiment_rank = avg_sentiment / MAX_AVG_SENTIMENT
-    else:
-        sentiment_rank = 0
+    # ==================================================
+    # 🔥 FEATURE RECONSTRUCTION (MATCHES TRAINING)
+    # ==================================================
 
+    # Approximate rank(pct=True)
+    views_rank = min(views / MAX_VIEWS, 1.0)
+    likes_rank = min(likes / MAX_LIKES, 1.0)
+    comments_rank = min(comments_count / MAX_COMMENTS, 1.0)
+
+    sentiment_rank = (
+        avg_sentiment / MAX_AVG_SENTIMENT
+        if MAX_AVG_SENTIMENT != 0 else 0
+    )
     sentiment_rank = np.clip(sentiment_rank, 0, 1)
 
-    # ANN expects → [views, likes, comment_count, sentiment_rank]
-    X = np.array([[views, likes, comments_count, sentiment_rank]])
+    # ANN INPUT (rank-based)
+    X = np.array([[views_rank, likes_rank, comments_rank, sentiment_rank]])
     X_scaled = scaler.transform(X)
 
+    # ---- Predict ----
     pred = model.predict(X_scaled)
     pred_class = np.argmax(pred)
     confidence = np.max(pred)
@@ -167,40 +127,19 @@ if predict_btn:
         2: ("High Popularity", "🔥")
     }
 
-    result_text, emoji = labels[pred_class]
+    result, emoji = labels[pred_class]
 
-    st.success(f"{emoji} **Predicted Popularity: {result_text}**")
+    st.success(f"{emoji} **Predicted Popularity: {result}**")
     st.write(f"🤖 Model Confidence: **{confidence:.2%}**")
 
+    # ---- Debug (for FYP validation) ----
     st.markdown("---")
-    st.subheader("📌 Sentiment Summary")
-    st.write(f"Raw Avg Sentiment: **{avg_sentiment:.3f}**")
-    st.write(f"Normalized Sentiment Rank (training-style): **{sentiment_rank:.3f}**")
+    st.subheader("📌 Model Input Features (Ranks)")
 
-    with st.expander("View Analyzed Comments"):
-        for i, s in enumerate(sentiments, start=1):
-            st.write(f"Comment {i}: Sentiment = {s:.3f}")
-
-    st.subheader("📌 Recommendations")
-
-    tips = []
-    if pred_class == 0:
-        tips.append("📉 Improve SEO, thumbnails, and title optimization.")
-    elif pred_class == 1:
-        tips.append("📊 Moderate performance — boost engagement with CTAs.")
-    else:
-        tips.append("🔥 Strong performance — keep consistency.")
-
-    for t in tips:
-        st.write(t)
-
-
-
-
-
-
-
-
+    st.write(f"Views Rank: **{views_rank:.3f}**")
+    st.write(f"Likes Rank: **{likes_rank:.3f}**")
+    st.write(f"Comments Rank: **{comments_rank:.3f}**")
+    st.write(f"Sentiment Rank: **{sentiment_rank:.3f}**")
 
 
 
