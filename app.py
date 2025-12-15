@@ -172,7 +172,7 @@ if predict_btn:
 
     # Display
     st.success(f"{emoji} **Predicted Popularity: {result_text}**")
-    st.write(f"🤖 Model Confidence: **{confidence:.2%}**")
+    
 
     st.markdown("---")
     st.subheader("📌 Sentiment Summary")
@@ -203,6 +203,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
