@@ -237,7 +237,6 @@ with tab_performance:
     compared to using engagement metrics alone.
     """)
 
-
 # ======================
 # INSIGHTS & RECOMMENDATIONS TAB
 # ======================
@@ -245,53 +244,130 @@ with tab_insights:
     st.header("💡 Insights & Recommendations")
 
     if "pred_class" not in st.session_state:
-        st.warning("Run a prediction first to view insights.")
+        st.warning("⚠️ Run a prediction first to view insights and plots.")
+        st.stop()
+
+    # =========================
+    # Retrieve stored values
+    # =========================
+    pred_class = st.session_state.pred_class
+    avg_sentiment = st.session_state.avg_sentiment
+    sentiment_class = st.session_state.sentiment_class
+
+    # =========================
+    # 1️⃣ SENTIMENT DISTRIBUTION PLOT
+    # =========================
+    st.subheader("📊 Sentiment Distribution of Viewer Comments")
+
+    # Recalculate sentiments for visualization
+    sentiment_scores = []
+    for i in range(10):
+        key = f"comment_{i}"
+        if key in st.session_state and st.session_state[key].strip():
+            cleaned = clean_comment(st.session_state[key])
+            if cleaned:
+                sentiment_scores.append(get_raw_sentiment(cleaned))
+
+    if sentiment_scores:
+        fig_sent = go.Figure()
+        fig_sent.add_trace(go.Bar(
+            x=[f"Comment {i+1}" for i in range(len(sentiment_scores))],
+            y=sentiment_scores
+        ))
+
+        fig_sent.update_layout(
+            title="Sentiment Score per Comment",
+            yaxis_title="Sentiment Score (-1 to +1)",
+            xaxis_title="Comments",
+            height=400
+        )
+
+        st.plotly_chart(fig_sent, use_container_width=True)
     else:
-        st.subheader("📌 Sentiment Analysis")
-        st.write(f"Average Sentiment Score: **{st.session_state.avg_sentiment:.3f}**")
-        st.write(f"Sentiment Class Used: **{st.session_state.sentiment_class}**")
+        st.info("No sentiment data available for visualization.")
 
-        st.subheader("📌 Recommendations")
+    st.write(f"**Average Sentiment Score:** `{avg_sentiment:.3f}`")
 
-        tips = []
-        if st.session_state.pred_class == 0:
-            tips.append("📉 Improve thumbnails, titles, and SEO optimization.")
-        elif st.session_state.pred_class == 1:
-            tips.append("📊 Encourage engagement using calls-to-action.")
-        else:
-            tips.append("🔥 Maintain consistency and content quality.")
+    # =========================
+    # 2️⃣ PREDICTION PROBABILITY BAR CHART
+    # =========================
+    st.subheader("📊 Popularity Prediction Confidence")
 
-        if st.session_state.sentiment_class == 0:
-            tips.append("😟 Negative sentiment detected — address viewer concerns.")
-        elif st.session_state.sentiment_class == 1:
-            tips.append("🙂 Neutral sentiment — improve clarity and pacing.")
-        else:
-            tips.append("🥰 Strong positive sentiment — great audience reception!")
+    popularity_labels = ["Low Popularity", "Medium Popularity", "High Popularity"]
+    probabilities = st.session_state.get("prediction_probs", None)
 
-        for t in tips:
-            st.write(t)
+    if probabilities is not None:
+        fig_prob = go.Figure()
+        fig_prob.add_trace(go.Bar(
+            x=popularity_labels,
+            y=probabilities,
+            text=[f"{p*100:.1f}%" for p in probabilities],
+            textposition="auto"
+        ))
 
+        fig_prob.update_layout(
+            title="ANN Prediction Probability Distribution",
+            yaxis_title="Probability",
+            xaxis_title="Popularity Level",
+            height=400
+        )
 
+        st.plotly_chart(fig_prob, use_container_width=True)
+    else:
+        st.info("Prediction probability data not found.")
 
+    # =========================
+    # 3️⃣ ENGAGEMENT METRICS COMPARISON
+    # =========================
+    st.subheader("📊 Engagement Metrics Comparison (Normalized)")
 
+    # Normalization (simple max-based)
+    views = st.session_state.views
+    likes = st.session_state.likes
+    comments_count = st.session_state.comments_count
 
+    max_val = max(views, likes, comments_count, 1)
 
+    engagement_vals = [
+        views / max_val,
+        likes / max_val,
+        comments_count / max_val
+    ]
 
+    fig_eng = go.Figure()
+    fig_eng.add_trace(go.Bar(
+        x=["Views", "Likes", "Comments"],
+        y=engagement_vals
+    ))
 
+    fig_eng.update_layout(
+        title="Relative Strength of Engagement Metrics",
+        yaxis_title="Normalized Value",
+        height=400
+    )
 
+    st.plotly_chart(fig_eng, use_container_width=True)
 
+    # =========================
+    # 4️⃣ RECOMMENDATIONS
+    # =========================
+    st.subheader("📌 Actionable Recommendations")
 
+    recommendations = []
 
+    if pred_class == 0:
+        recommendations.append("📉 Low popularity detected — improve thumbnails, titles, and SEO.")
+    elif pred_class == 1:
+        recommendations.append("📊 Moderate popularity — boost engagement using calls-to-action.")
+    else:
+        recommendations.append("🔥 High popularity — maintain consistency and content quality.")
 
+    if sentiment_class == 0:
+        recommendations.append("😟 Negative sentiment — review viewer feedback and improve content clarity.")
+    elif sentiment_class == 1:
+        recommendations.append("🙂 Neutral sentiment — add emotional appeal or storytelling.")
+    else:
+        recommendations.append("🥰 Positive sentiment — excellent audience reception, keep it up!")
 
-
-
-
-
-
-
-
-
-
-
-
+    for rec in recommendations:
+        st.write(rec)
