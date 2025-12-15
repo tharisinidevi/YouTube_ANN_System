@@ -9,8 +9,22 @@ from tensorflow.keras.models import load_model
 from textblob import TextBlob
 import re
 
+# ======================
+# Load Local CSS
+# ======================
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+st.set_page_config(
+    page_title="YouTube Popularity Predictor",
+    page_icon="🎬",
+    layout="centered"
+)
+
+# Load custom CSS
 local_css("style.css")
+
 
 # ======================
 # Sentiment Setup (VADER preferred)
@@ -256,6 +270,7 @@ with tab_insights:
 
         for t in tips:
             st.write(t)
+
 
 
 
