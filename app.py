@@ -231,14 +231,31 @@ with tab_performance:
     """)
 
     # ======================
-    # Model Predictions
+    # Load Test Data
     # ======================
-    y_pred_prob = model.predict(X_test)
+    try:
+        X_test = joblib.load("model/X_test.pkl")
+        y_test = joblib.load("model/y_test.pkl")
+    except FileNotFoundError:
+        st.error("❌ Test dataset not found. Please ensure 'X_test.pkl' and 'y_test.pkl' exist in the 'model' folder.")
+        st.stop()
+
+    # ======================
+    # Scale Test Data
+    # ======================
+    X_test_scaled = scaler.transform(X_test)
+
+    # ======================
+    # Predict
+    # ======================
+    y_pred_prob = model.predict(X_test_scaled)
     y_pred = np.argmax(y_pred_prob, axis=1)
 
     # ======================
-    # Metrics Calculation
+    # Compute Metrics
     # ======================
+    from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
+
     acc = accuracy_score(y_test, y_pred)
     prec = precision_score(y_test, y_pred, average="weighted", zero_division=0)
     rec = recall_score(y_test, y_pred, average="weighted", zero_division=0)
@@ -251,16 +268,19 @@ with tab_performance:
     st.markdown("---")
 
     # ======================
-    # Confusion Matrix Plot
+    # Confusion Matrix
     # ======================
     st.subheader("📌 Confusion Matrix")
 
+    import plotly.figure_factory as ff
+
     cm = confusion_matrix(y_test, y_pred)
+    labels = ["Low", "Medium", "High"]
 
     fig_cm = ff.create_annotated_heatmap(
         z=cm,
-        x=["Low", "Medium", "High"],
-        y=["Low", "Medium", "High"],
+        x=labels,
+        y=labels,
         colorscale="Blues",
         showscale=True
     )
@@ -274,9 +294,10 @@ with tab_performance:
     st.plotly_chart(fig_cm, use_container_width=True)
 
     st.info("""
-    Results show that incorporating sentiment features alongside engagement metrics
-    improves the ANN model’s ability to correctly classify video popularity levels.
+    ✅ These metrics and the confusion matrix illustrate that incorporating sentiment features
+    along with engagement metrics improves the ANN model’s ability to correctly classify video popularity levels.
     """)
+
 
 
 # ======================
@@ -413,5 +434,6 @@ with tab_insights:
 
     for rec in recommendations:
         st.write(rec)
+
 
 
