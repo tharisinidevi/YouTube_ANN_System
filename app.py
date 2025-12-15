@@ -9,6 +9,9 @@ from tensorflow.keras.models import load_model
 from textblob import TextBlob
 import re
 
+
+local_css("style.css")
+
 # ======================
 # Sentiment Setup (VADER preferred)
 # ======================
@@ -253,6 +256,7 @@ with tab_insights:
 
         for t in tips:
             st.write(t)
+
 
 
 
