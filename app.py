@@ -26,7 +26,7 @@ except:
 # ======================
 # Load ANN Model + Scaler
 # ======================
-MODEL_PATH = "model/ann_model.h5"
+MODEL_PATH = "model/youtube_popularity_ann.h5"
 SCALER_PATH = "model/scaler.pkl"
 
 model = load_model(MODEL_PATH)
@@ -203,6 +203,7 @@ if predict_btn:
 
     for t in tips:
         st.write(t)
+
 
 
 
