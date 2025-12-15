@@ -1,4 +1,4 @@
-# app.py — FINAL VERSION (SENTIMENT FIXED - OPTION A)
+# app.py — FINAL VERSION (SENTIMENT NORMALIZATION FIXED)
 
 import streamlit as st
 import numpy as np
@@ -31,6 +31,13 @@ SCALER_PATH = "model/scaler.pkl"
 
 model = load_model(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
+
+
+# ======================
+# SENTIMENT NORMALIZATION CONSTANT
+# (MUST MATCH TRAINING DATA)
+# ======================
+MAX_AVG_SENTIMENT = 2.0   # 🔴 REPLACE with exact max from training if different
 
 
 # ======================
@@ -93,7 +100,7 @@ for i in range(10):
 
 
 # ======================
-# Sentiment Helpers (FIXED)
+# Sentiment Helpers
 # ======================
 def clean_comment(text):
     text = re.sub(r"http\S+|www\.\S+", "", text)
@@ -105,26 +112,6 @@ def get_raw_sentiment(text):
     if use_vader:
         return sia.polarity_scores(text)["compound"]
     return TextBlob(text).sentiment.polarity
-
-
-def convert_sentiment_to_class(s):
-    """Convert -1..1 sentiment to classes 0,1,2."""
-    if s < -0.25:
-        return 0        # negative
-    elif s <= 0.25:
-        return 1        # neutral
-    else:
-        return 2        # positive
-
-
-def sentiment_rank_from_avg(avg_sentiment):
-    """
-    FINAL FIX:
-    Convert raw avg sentiment → training-compatible sentiment_rank
-    """
-    sentiment_class = convert_sentiment_to_class(avg_sentiment)
-    sentiment_rank = sentiment_class / 2  # 0.0, 0.5, 1.0
-    return sentiment_rank, sentiment_class
 
 
 # ======================
@@ -156,8 +143,15 @@ if predict_btn:
 
     avg_sentiment = np.mean(sentiments)
 
-    # ✅ FIXED SENTIMENT PIPELINE
-    sentiment_rank, sentiment_class = sentiment_rank_from_avg(avg_sentiment)
+    # ======================
+    # ✅ FINAL SENTIMENT FIX
+    # ======================
+    if MAX_AVG_SENTIMENT != 0:
+        sentiment_rank = avg_sentiment / MAX_AVG_SENTIMENT
+    else:
+        sentiment_rank = 0
+
+    sentiment_rank = np.clip(sentiment_rank, 0, 1)
 
     # ANN expects → [views, likes, comment_count, sentiment_rank]
     X = np.array([[views, likes, comments_count, sentiment_rank]])
@@ -180,9 +174,8 @@ if predict_btn:
 
     st.markdown("---")
     st.subheader("📌 Sentiment Summary")
-    st.write(f"Raw Avg Sentiment (-1..1): **{avg_sentiment:.3f}**")
-    st.write(f"Sentiment Class (0=Neg,1=Neu,2=Pos): **{sentiment_class}**")
-    st.write(f"Sentiment Rank Used for ANN: **{sentiment_rank}**")
+    st.write(f"Raw Avg Sentiment: **{avg_sentiment:.3f}**")
+    st.write(f"Normalized Sentiment Rank (training-style): **{sentiment_rank:.3f}**")
 
     with st.expander("View Analyzed Comments"):
         for i, s in enumerate(sentiments, start=1):
@@ -197,13 +190,6 @@ if predict_btn:
         tips.append("📊 Moderate performance — boost engagement with CTAs.")
     else:
         tips.append("🔥 Strong performance — keep consistency.")
-
-    if sentiment_class == 0:
-        tips.append("😟 Viewers feel negative — review feedback and adjust content.")
-    elif sentiment_class == 1:
-        tips.append("🙂 Balanced sentiment — improve clarity and pacing.")
-    else:
-        tips.append("🥰 Very positive comments — great audience reception!")
 
     for t in tips:
         st.write(t)
