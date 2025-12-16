@@ -119,7 +119,7 @@ def convert_sentiment_to_class(score):
 # HOME TAB
 # ======================
 with tab_home:
-    st.header("📌 Project Overview")
+    st.header("Project Overview")
 
     st.write("""
     This system predicts the popularity level of YouTube videos by combining:
@@ -144,7 +144,7 @@ with tab_home:
     - 🔥 High Popularity
     """)
 
-    st.info("➡️ Navigate to the **Prediction** tab to test a video.")
+    #st.info("➡️ Navigate to the **Prediction** tab to test a video.")
 
 
 # ======================
@@ -434,6 +434,7 @@ with tab_insights:
 
     for rec in recommendations:
         st.write(rec)
+
 
 
 
