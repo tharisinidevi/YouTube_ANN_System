@@ -210,7 +210,7 @@ with tab_predict:
         result_text, emoji = labels[pred_class]
 
         st.success(f"{emoji} **Predicted Popularity: {result_text}**")
-        st.write(f"Prediction Confidence: **{confidence * 100:.2f}%**")
+        #st.write(f"Prediction Confidence: **{confidence * 100:.2f}%**")
 
         # Store results for Insights tab
         st.session_state.pred_class = pred_class
@@ -354,30 +354,30 @@ with tab_insights:
     # =========================
     # 2️⃣ PREDICTION PROBABILITY BAR CHART
     # =========================
-    st.subheader("📊 Popularity Prediction Confidence")
+    #st.subheader("📊 Popularity Prediction Confidence")
 
-    popularity_labels = ["Low Popularity", "Medium Popularity", "High Popularity"]
-    probabilities = st.session_state.get("prediction_probs", None)
+    #popularity_labels = ["Low Popularity", "Medium Popularity", "High Popularity"]
+    #probabilities = st.session_state.get("prediction_probs", None)
 
-    if probabilities is not None:
-        fig_prob = go.Figure()
-        fig_prob.add_trace(go.Bar(
-            x=popularity_labels,
-            y=probabilities,
-            text=[f"{p*100:.1f}%" for p in probabilities],
-            textposition="auto"
-        ))
+    #if probabilities is not None:
+        #fig_prob = go.Figure()
+        #fig_prob.add_trace(go.Bar(
+            #x=popularity_labels,
+            #y=probabilities,
+            #text=[f"{p*100:.1f}%" for p in probabilities],
+            #textposition="auto"
+        #))
 
-        fig_prob.update_layout(
-            title="ANN Prediction Probability Distribution",
-            yaxis_title="Probability",
-            xaxis_title="Popularity Level",
-            height=400
-        )
+        #fig_prob.update_layout(
+            #title="ANN Prediction Probability Distribution",
+            #yaxis_title="Probability",
+            #xaxis_title="Popularity Level",
+            #height=400
+        #)
 
-        st.plotly_chart(fig_prob, use_container_width=True)
-    else:
-        st.info("Prediction probability data not found.")
+        #st.plotly_chart(fig_prob, use_container_width=True)
+    #else:
+        #st.info("Prediction probability data not found.")
 
     # =========================
     # 3️⃣ ENGAGEMENT METRICS COMPARISON
@@ -434,6 +434,7 @@ with tab_insights:
 
     for rec in recommendations:
         st.write(rec)
+
 
 
 
