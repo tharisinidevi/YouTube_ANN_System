@@ -8,7 +8,7 @@ import joblib
 import re
 from tensorflow.keras.models import load_model
 from textblob import TextBlob
-import plotly.graph_objects as go
+import plotly.graph_objects as gon
 import plotly.figure_factory as ff
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 
@@ -172,28 +172,44 @@ with tab_home:
 with tab_predict:
     st.header("🔮 Predict Video Popularity")
 
+    st.subheader("📊 Enter Engagement Metrics")
     views = st.number_input("Total Views", min_value=0, step=1, key="views")
     likes = st.number_input("Total Likes", min_value=0, step=1, key="likes")
     comments_count = st.number_input("Total Comments Count", min_value=0, step=1, key="comments_count")
 
-    st.subheader("💬 Enter at least TWO comments")
+    st.markdown("---")
+    st.subheader("💬 Enter at least TWO viewer comments")
+
     cols = st.columns(2)
-    comments = []
+    comment_inputs = []
     for i in range(10):
         with cols[i % 2]:
-            comments.append(st.text_input(f"Comment {i+1}", key=f"comment_{i}"))
+            comment_inputs.append(
+                st.text_input(f"Comment {i + 1}", key=f"comment_{i}")
+            )
 
+    st.markdown("---")
     col1, col2 = st.columns(2)
-    predict_btn = col1.button("🔮 Predict")
+    predict_btn = col1.button("🔮 Predict Popularity")
     col2.button("🔁 Reset", on_click=lambda: st.session_state.update({"reset": True}))
 
     if predict_btn:
-        valid_comments = [c for c in comments if c.strip()]
-        if views == 0 or likes == 0 or comments_count == 0 or len(valid_comments) < 2:
-            st.error("⚠️ Please enter valid inputs and at least two comments.")
+
+        if views == 0 or likes == 0 or comments_count == 0:
+            st.error("⚠️ Please enter Views, Likes, and Comments Count.")
             st.stop()
 
-        sentiments = [get_raw_sentiment(clean_comment(c)) for c in valid_comments]
+        valid_comments = [c for c in comment_inputs if c.strip() != ""]
+        if len(valid_comments) < 2:
+            st.error("⚠️ Enter at least TWO non-empty comments.")
+            st.stop()
+
+        sentiments = []
+        for c in valid_comments:
+            c_clean = clean_comment(c)
+            if c_clean:
+                sentiments.append(get_raw_sentiment(c_clean))
+
         avg_sentiment = np.mean(sentiments)
         sentiment_class = convert_sentiment_to_class(avg_sentiment)
 
@@ -202,20 +218,26 @@ with tab_predict:
 
         prediction = model.predict(X_scaled)
         pred_class = np.argmax(prediction)
+        confidence = np.max(prediction)
 
-        labels_map = {
+        labels = {
             0: ("Low Popularity", "📉"),
             1: ("Medium Popularity", "📊"),
             2: ("High Popularity", "🔥")
         }
 
-        result, emoji = labels_map[pred_class]
-        st.success(f"{emoji} **Predicted Popularity: {result}**")
+        result_text, emoji = labels[pred_class]
 
-        # Store for insights
+        st.success(f"{emoji} **Predicted Popularity: {result_text}**")
+        #st.write(f"Prediction Confidence: **{confidence * 100:.2f}%**")
+
+        # Store results for Insights tab
         st.session_state.pred_class = pred_class
+        st.session_state.result_text = result_text
         st.session_state.avg_sentiment = avg_sentiment
-        st.session_state.sentiments = sentiments
+        st.session_state.sentiment_class = sentiment_class
+
+
 
     # ======================
     # INSIGHTS & RECOMMENDATIONS
@@ -277,6 +299,7 @@ with tab_contact:
             st.warning("⚠️ Please enter feedback.")
         else:
             st.success("✅ Thank you! Your feedback has been received.")
+
 
 
 
