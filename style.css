@@ -35,16 +35,6 @@ p, li, label, span {
     font-size: 15px;
 }
 
-/* ================================
-   Cards / Containers
-================================ */
-.stContainer, .block-container {
-    background-color: rgba(255, 255, 255, 0.95);
-    padding: 2rem;
-    border-radius: 16px;
-    box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.08);
-    margin-bottom: 20px;
-}
 
 /* ================================
    Buttons
