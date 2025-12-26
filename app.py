@@ -59,17 +59,29 @@ model = load_model("model/youtube_popularity_ann.h5")
 scaler = joblib.load("model/scaler.pkl")
 
 # ======================
-# Reset Handler
+# Reset Handler (FULL RESET)
 # ======================
 if "reset" in st.session_state and st.session_state.reset:
+
+    # Reset numeric inputs
     st.session_state.views = 0
     st.session_state.likes = 0
     st.session_state.comments_count = 0
+
+    # Reset comment inputs
     for k in list(st.session_state.keys()):
         if k.startswith("comment_"):
             st.session_state[k] = ""
+
+    # 🔥 Clear prediction & insights
+    for key in ["pred_class", "avg_sentiment", "sentiments"]:
+        if key in st.session_state:
+            del st.session_state[key]
+
+    # Clear reset flag
     st.session_state.reset = False
     st.rerun()
+
 
 # ======================
 # Tabs
@@ -307,6 +319,7 @@ with tab_contact:
             st.warning("⚠️ Please enter feedback.")
         else:
             st.success("✅ Thank you! Your feedback has been received.")
+
 
 
 
