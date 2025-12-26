@@ -8,7 +8,7 @@ import joblib
 import re
 from tensorflow.keras.models import load_model
 from textblob import TextBlob
-import plotly.graph_objects as gon
+import plotly.graph_objects as go
 import plotly.figure_factory as ff
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 
@@ -184,9 +184,7 @@ with tab_predict:
     comment_inputs = []
     for i in range(10):
         with cols[i % 2]:
-            comment_inputs.append(
-                st.text_input(f"Comment {i + 1}", key=f"comment_{i}")
-            )
+            comment_inputs.append(st.text_input(f"Comment {i + 1}", key=f"comment_{i}"))
 
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -194,21 +192,18 @@ with tab_predict:
     col2.button("🔁 Reset", on_click=lambda: st.session_state.update({"reset": True}))
 
     if predict_btn:
-
         if views == 0 or likes == 0 or comments_count == 0:
-            st.error("⚠️ Please enter Views, Likes, and Comments Count.")
+            st.error("⚠️ Please enter **Views, Likes, and Comments Count together** before prediction.")
             st.stop()
 
-        valid_comments = [c for c in comment_inputs if c.strip() != ""]
+        valid_comments = [c for c in comment_inputs if c.strip()]
         if len(valid_comments) < 2:
             st.error("⚠️ Enter at least TWO non-empty comments.")
             st.stop()
 
         sentiments = []
         for c in valid_comments:
-            c_clean = clean_comment(c)
-            if c_clean:
-                sentiments.append(get_raw_sentiment(c_clean))
+            sentiments.append(get_raw_sentiment(clean_comment(c)))
 
         avg_sentiment = np.mean(sentiments)
         sentiment_class = convert_sentiment_to_class(avg_sentiment)
@@ -218,7 +213,6 @@ with tab_predict:
 
         prediction = model.predict(X_scaled)
         pred_class = np.argmax(prediction)
-        confidence = np.max(prediction)
 
         labels = {
             0: ("Low Popularity", "📉"),
@@ -227,17 +221,11 @@ with tab_predict:
         }
 
         result_text, emoji = labels[pred_class]
-
         st.success(f"{emoji} **Predicted Popularity: {result_text}**")
-        #st.write(f"Prediction Confidence: **{confidence * 100:.2f}%**")
 
-        # Store results for Insights tab
         st.session_state.pred_class = pred_class
-        st.session_state.result_text = result_text
         st.session_state.avg_sentiment = avg_sentiment
-        st.session_state.sentiment_class = sentiment_class
-
-
+        st.session_state.sentiments = sentiments
 
     # ======================
     # INSIGHTS & RECOMMENDATIONS
@@ -260,22 +248,42 @@ with tab_predict:
 
         st.plotly_chart(fig_sent, use_container_width=True)
 
-        st.write(f"**Average Sentiment:** `{st.session_state.avg_sentiment:.3f}`")
+        st.write(f"**Average Sentiment Score:** `{st.session_state.avg_sentiment:.3f}`")
 
         recs = []
-        if st.session_state.pred_class == 0:
-            recs.append("📉 Improve title, thumbnail, and SEO.")
-        elif st.session_state.pred_class == 1:
-            recs.append("📊 Increase engagement using CTAs.")
-        else:
-            recs.append("🔥 Maintain consistency and content quality.")
 
-        if st.session_state.avg_sentiment < -0.25:
-            recs.append("😟 Address negative feedback.")
-        elif st.session_state.avg_sentiment <= 0.25:
-            recs.append("🙂 Add emotional or storytelling elements.")
+        # Views
+        if views < 1000:
+            recs.append("👀 Views are low — improve title, thumbnail, and SEO.")
+        elif views < 10000:
+            recs.append("👀 Moderate views — promote on social media.")
         else:
-            recs.append("🥰 Strong positive reception.")
+            recs.append("👀 Strong views — maintain consistency.")
+
+        # Likes
+        like_ratio = likes / max(views, 1)
+        if like_ratio < 0.02:
+            recs.append("👍 Low likes ratio — encourage likes via CTA.")
+        elif like_ratio < 0.05:
+            recs.append("👍 Average likes engagement — improve content appeal.")
+        else:
+            recs.append("👍 High likes engagement — audience values content.")
+
+        # Comments
+        if comments_count < 50:
+            recs.append("💬 Low comment activity — ask questions to engage viewers.")
+        elif comments_count < 200:
+            recs.append("💬 Moderate comments — reply to comments.")
+        else:
+            recs.append("💬 High comment interaction — strong community engagement.")
+
+        # Sentiment
+        if st.session_state.avg_sentiment < -0.25:
+            recs.append("😟 Negative sentiment — review viewer feedback.")
+        elif st.session_state.avg_sentiment <= 0.25:
+            recs.append("🙂 Neutral sentiment — add emotional storytelling.")
+        else:
+            recs.append("🥰 Positive sentiment — excellent audience satisfaction.")
 
         for r in recs:
             st.write(r)
@@ -299,8 +307,6 @@ with tab_contact:
             st.warning("⚠️ Please enter feedback.")
         else:
             st.success("✅ Thank you! Your feedback has been received.")
-
-
 
 
 
