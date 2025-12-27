@@ -27,6 +27,12 @@ import streamlit as st
 def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+        
+st.set_page_config(
+    page_title="YouTube Popularity Predictor",
+    page_icon="🎬",
+    layout="centered"
+)
 
 local_css("style.css")
 
@@ -204,6 +210,7 @@ with tab_contact:
                 server.send_message(msg)
 
             st.success("✅ Feedback sent successfully!")
+
 
 
 
