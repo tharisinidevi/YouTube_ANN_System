@@ -22,7 +22,8 @@ st.set_page_config(
     page_icon="🎬",
     layout="centered"
 )
-
+# Load custom CSS
+local_css("style.css")
 st.title("🎬 YouTube Video Popularity Prediction")
 st.markdown("---")
 
@@ -32,8 +33,7 @@ st.markdown("---")
 model = load_model("model/youtube_popularity_ann.h5")
 scaler = joblib.load("model/scaler.pkl")
 
-# Load custom CSS
-local_css("style.css")
+
 # ======================
 # SENTIMENT SETUP
 # ======================
@@ -200,6 +200,7 @@ with tab_contact:
                 server.send_message(msg)
 
             st.success("✅ Feedback sent successfully!")
+
 
 
 
