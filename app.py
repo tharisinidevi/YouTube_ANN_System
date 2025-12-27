@@ -215,7 +215,7 @@ with tab_predict:
     # ======================
     # RESET LOGIC (SAFE)
     # ======================
-  reset_btn = col2.button("🔁 Reset")
+  #reset_btn = col2.button("🔁 Reset")
 
 if reset_btn:
     # Clear numeric inputs
@@ -378,6 +378,7 @@ with tab_contact:
             st.warning("⚠️ Please enter feedback.")
         else:
             st.success("✅ Thank you! Your feedback has been received.")
+
 
 
 
