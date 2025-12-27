@@ -231,7 +231,8 @@ with tab_predict:
             if key in st.session_state:
                 del st.session_state[key]
 
-        st.experimental_rerun()
+        st.rerun()
+
 
     # ======================
     # PREDICTION LOGIC
@@ -375,6 +376,7 @@ with tab_contact:
             st.warning("⚠️ Please enter feedback.")
         else:
             st.success("✅ Thank you! Your feedback has been received.")
+
 
 
 
