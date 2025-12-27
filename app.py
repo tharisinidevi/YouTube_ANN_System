@@ -32,6 +32,8 @@ st.markdown("---")
 model = load_model("model/youtube_popularity_ann.h5")
 scaler = joblib.load("model/scaler.pkl")
 
+# Load custom CSS
+local_css("style.css")
 # ======================
 # SENTIMENT SETUP
 # ======================
@@ -198,6 +200,7 @@ with tab_contact:
                 server.send_message(msg)
 
             st.success("✅ Feedback sent successfully!")
+
 
 
 
