@@ -63,6 +63,19 @@ def convert_sentiment_to_class(score):
         return 2
 
 # ======================
+# Page Config
+# ======================
+st.set_page_config(
+    page_title="YouTube Popularity Predictor",
+    page_icon="🎬",
+    layout="centered"
+)
+
+st.title("🎬 YouTube Video Popularity Prediction")
+st.markdown("---")
+
+
+# ======================
 # TABS
 # ======================
 tab_home, tab_predict, tab_contact = st.tabs(
@@ -210,6 +223,7 @@ with tab_contact:
                 server.send_message(msg)
 
             st.success("✅ Feedback sent successfully!")
+
 
 
 
