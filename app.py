@@ -215,23 +215,25 @@ with tab_predict:
     # ======================
     # RESET LOGIC (SAFE)
     # ======================
-    if reset_btn:
-        # Remove widget keys
-        for key in ["views", "likes", "comments_count"]:
-            if key in st.session_state:
-                del st.session_state[key]
+  reset_btn = col2.button("🔁 Reset")
 
-        # Remove comments
-        for k in list(st.session_state.keys()):
-            if k.startswith("comment_"):
-                del st.session_state[k]
+if reset_btn:
+    # Clear numeric inputs
+    for key in ["views", "likes", "comments_count"]:
+        if key in st.session_state:
+            del st.session_state[key]
 
-        # Remove prediction outputs
-        for key in ["pred_class", "avg_sentiment", "sentiments"]:
-            if key in st.session_state:
-                del st.session_state[key]
+    # Clear comments
+    for k in list(st.session_state.keys()):
+        if k.startswith("comment_"):
+            del st.session_state[k]
 
-        st.rerun()
+    # Clear prediction outputs
+    for key in ["pred_class", "avg_sentiment", "sentiments"]:
+        if key in st.session_state:
+            del st.session_state[key]
+
+    st.rerun()
 
 
     # ======================
@@ -376,6 +378,7 @@ with tab_contact:
             st.warning("⚠️ Please enter feedback.")
         else:
             st.success("✅ Thank you! Your feedback has been received.")
+
 
 
 
