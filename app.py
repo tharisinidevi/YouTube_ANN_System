@@ -114,9 +114,20 @@ with tab_home:
     st.header("📌 Project Overview")
 
     st.write("""
-    This system predicts YouTube video popularity using engagement metrics,
-    viewer sentiment, and an Artificial Neural Network (ANN).
+    This system predicts YouTube video popularity by integrating:
+    - Engagement metrics (views, likes, comments)
+    - Viewer sentiment extracted from comments
+    - An Artificial Neural Network (ANN) classifier
     """)
+
+    st.subheader("🔄 System Workflow")
+    st.write("""
+    1. Engagement metrics are provided  
+    2. Viewer comments are analyzed for sentiment  
+    3. Features are normalized using a scaler  
+    4. ANN predicts popularity level  
+    """)
+
 
     st.subheader("🎯 Popularity Classes")
     st.write("📉 Low | 📊 Medium | 🔥 High")
@@ -235,6 +246,7 @@ with tab_contact:
             df.to_csv(file_path, index=False)
 
         st.success("✅ Feedback saved successfully!")
+
 
 
 
