@@ -114,7 +114,7 @@ with tab_home:
     st.header("📌 Project Overview")
 
     st.write("""
-     This system predicts the popularity level of YouTube videos by combining:
+    This system predicts the popularity level of YouTube videos by combining:
     - Engagement metrics (views, likes, comments)
     - Viewer sentiment extracted from comments
     - An Artificial Neural Network (ANN) classifier
@@ -130,11 +130,7 @@ with tab_home:
     """)
 
     st.subheader("🎯 Popularity Levels")
-    st.write("""
-    - 📉 Low Popularity  
-    - 📊 Medium Popularity  
-    - 🔥 High Popularity
-    """)
+    st.write("📉 Low | 📊 Medium | 🔥 High")
 
     st.markdown("---")
     st.header("📊 Model Performance")
@@ -179,32 +175,29 @@ with tab_predict:
     predict_btn = col1.button("🔮 Predict")
     col2.button("🔁 Reset", on_click=reset_all)
 
-        if predict_btn:
+    # ✅ FIXED INDENTATION
+    if predict_btn:
 
         if views == 0 or likes == 0 or comments_count == 0:
             st.error("⚠️ Please enter Views, Likes, and Comments Count.")
             st.stop()
 
-        valid_comments = [c for c in comment_inputs if c.strip() != ""]
+        valid_comments = [c for c in comments if c.strip() != ""]
         if len(valid_comments) < 2:
             st.error("⚠️ Enter at least TWO non-empty comments.")
             st.stop()
 
         sentiments = []
         for c in valid_comments:
-            c_clean = clean_comment(c)
-            if c_clean:
-                sentiments.append(get_raw_sentiment(c_clean))
+            sentiments.append(get_raw_sentiment(clean_comment(c)))
 
         avg_sentiment = np.mean(sentiments)
         sentiment_class = convert_sentiment_to_class(avg_sentiment)
 
-        X = np.array([[views, likes, comments_count, sentiment_class]])
-        X_scaled = scaler.transform(X)
+        X = scaler.transform([[views, likes, comments_count, sentiment_class]])
+        prediction = model.predict(X)
 
-        prediction = model.predict(X_scaled)
         pred_class = np.argmax(prediction)
-        confidence = np.max(prediction)
 
         labels = {
             0: ("Low Popularity", "📉"),
@@ -213,28 +206,25 @@ with tab_predict:
         }
 
         result_text, emoji = labels[pred_class]
-
         st.success(f"{emoji} **Predicted Popularity: {result_text}**")
-        #st.write(f"Prediction Confidence: **{confidence * 100:.2f}%**")
 
-        # Store results for Insights tab
+        # Store results
+        st.session_state.show_results = True
         st.session_state.pred_class = pred_class
-        st.session_state.result_text = result_text
+        st.session_state.sentiments = sentiments
         st.session_state.avg_sentiment = avg_sentiment
-        st.session_state.sentiment_class = sentiment_class
 
-
-    
     if st.session_state.show_results:
         st.subheader("📊 Sentiment Analysis")
+
         fig = go.Figure()
         fig.add_bar(
             x=[f"Comment {i+1}" for i in range(len(st.session_state.sentiments))],
             y=st.session_state.sentiments
         )
         fig.update_layout(
-            yaxis_title="Sentiment Score (-1 to +1)",
-            title="Sentiment Score per Comment"
+            title="Sentiment Score per Comment",
+            yaxis_title="Sentiment Score (-1 to +1)"
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -289,9 +279,11 @@ with tab_contact:
         os.makedirs("feedback", exist_ok=True)
         pd.DataFrame([[name, email, feedback]],
                      columns=["Name", "Email", "Feedback"]
-                     ).to_csv("feedback/feedback.csv",
-                              mode="a",
-                              header=not os.path.exists("feedback/feedback.csv"),
-                              index=False)
+                     ).to_csv(
+            "feedback/feedback.csv",
+            mode="a",
+            header=not os.path.exists("feedback/feedback.csv"),
+            index=False
+        )
         st.success("✅ Feedback saved successfully!")
 
