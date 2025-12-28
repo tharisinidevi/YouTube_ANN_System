@@ -59,24 +59,21 @@ model = load_model("model/youtube_popularity_ann.h5")
 scaler = joblib.load("model/scaler.pkl")
 
 # ======================
-# Reset Handler
+# RESET FUNCTION (IMPORTANT)
 # ======================
-if "reset" in st.session_state and st.session_state.reset:
-    st.session_state.views = 0
-    st.session_state.likes = 0
-    st.session_state.comments_count = 0
-    for k in list(st.session_state.keys()):
-        if k.startswith("comment_"):
-            st.session_state[k] = ""
-    st.session_state.reset = False
-    st.rerun()
+def reset_all():
+    keys_to_clear = [
+        "views", "likes", "comments_count",
+        "pred_class", "avg_sentiment", "sentiments"
+    ]
+    for i in range(10):
+        keys_to_clear.append(f"comment_{i}")
 
-# ======================
-# Tabs
-# ======================
-tab_home, tab_predict, tab_contact = st.tabs(
-    ["🏠 Home", "🔮 Prediction", "📩 Contact & Feedback"]
-)
+    for key in keys_to_clear:
+        if key in st.session_state:
+            del st.session_state[key]
+
+    st.rerun()
 
 # ======================
 # Helper Functions
@@ -99,6 +96,13 @@ def convert_sentiment_to_class(score):
         return 2
 
 # ======================
+# Tabs
+# ======================
+tab_home, tab_predict, tab_contact = st.tabs(
+    ["🏠 Home", "🔮 Prediction", "📩 Contact & Feedback"]
+)
+
+# ======================
 # HOME TAB
 # ======================
 with tab_home:
@@ -113,10 +117,10 @@ with tab_home:
 
     st.subheader("🔄 System Workflow")
     st.write("""
-    1. Engagement metrics are provided  
+    1. User provides engagement metrics  
     2. Viewer comments are analyzed for sentiment  
     3. Features are normalized using a scaler  
-    4. ANN predicts popularity level  
+    4. ANN predicts popularity class  
     """)
 
     st.subheader("🎯 Popularity Classes")
@@ -133,36 +137,22 @@ with tab_home:
         st.stop()
 
     X_test_scaled = scaler.transform(X_test)
-    y_pred_prob = model.predict(X_test_scaled)
-    y_pred = np.argmax(y_pred_prob, axis=1)
-
-    acc = accuracy_score(y_test, y_pred)
-    prec = precision_score(y_test, y_pred, average="weighted", zero_division=0)
-    rec = recall_score(y_test, y_pred, average="weighted", zero_division=0)
+    y_pred = np.argmax(model.predict(X_test_scaled), axis=1)
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Accuracy", f"{acc*100:.2f}%")
-    col2.metric("Precision", f"{prec*100:.2f}%")
-    col3.metric("Recall", f"{rec*100:.2f}%")
+    col1.metric("Accuracy", f"{accuracy_score(y_test, y_pred)*100:.2f}%")
+    col2.metric("Precision", f"{precision_score(y_test, y_pred, average='weighted')*100:.2f}%")
+    col3.metric("Recall", f"{recall_score(y_test, y_pred, average='weighted')*100:.2f}%")
 
     st.subheader("📌 Confusion Matrix")
 
-    cm = confusion_matrix(y_test, y_pred)
-    labels = ["Low", "Medium", "High"]
-
     fig_cm = ff.create_annotated_heatmap(
-        z=cm,
-        x=labels,
-        y=labels,
-        colorscale="Blues",
-        showscale=True
+        z=confusion_matrix(y_test, y_pred),
+        x=["Low", "Medium", "High"],
+        y=["Low", "Medium", "High"],
+        colorscale="Blues"
     )
-
-    fig_cm.update_layout(
-        xaxis_title="Predicted Label",
-        yaxis_title="True Label",
-        height=450
-    )
+    fig_cm.update_layout(xaxis_title="Predicted", yaxis_title="Actual")
 
     st.plotly_chart(fig_cm, use_container_width=True)
 
@@ -172,7 +162,6 @@ with tab_home:
 with tab_predict:
     st.header("🔮 Predict Video Popularity")
 
-    st.subheader("📊 Enter Engagement Metrics")
     views = st.number_input("Total Views", min_value=0, step=1, key="views")
     likes = st.number_input("Total Likes", min_value=0, step=1, key="likes")
     comments_count = st.number_input("Total Comments Count", min_value=0, step=1, key="comments_count")
@@ -184,109 +173,57 @@ with tab_predict:
     comment_inputs = []
     for i in range(10):
         with cols[i % 2]:
-            comment_inputs.append(st.text_input(f"Comment {i + 1}", key=f"comment_{i}"))
+            comment_inputs.append(
+                st.text_input(f"Comment {i+1}", key=f"comment_{i}")
+            )
 
     st.markdown("---")
     col1, col2 = st.columns(2)
     predict_btn = col1.button("🔮 Predict Popularity")
-    col2.button("🔁 Reset", on_click=lambda: st.session_state.update({"reset": True}))
+    col2.button("🔁 Reset", on_click=reset_all)
 
     if predict_btn:
         if views == 0 or likes == 0 or comments_count == 0:
-            st.error("⚠️ Please enter **Views, Likes, and Comments Count together** before prediction.")
+            st.error("⚠️ Please enter Views, Likes and Comments Count together.")
             st.stop()
 
         valid_comments = [c for c in comment_inputs if c.strip()]
         if len(valid_comments) < 2:
-            st.error("⚠️ Enter at least TWO non-empty comments.")
+            st.error("⚠️ Please enter at least TWO comments.")
             st.stop()
 
-        sentiments = []
-        for c in valid_comments:
-            sentiments.append(get_raw_sentiment(clean_comment(c)))
-
+        sentiments = [get_raw_sentiment(clean_comment(c)) for c in valid_comments]
         avg_sentiment = np.mean(sentiments)
         sentiment_class = convert_sentiment_to_class(avg_sentiment)
 
-        X = np.array([[views, likes, comments_count, sentiment_class]])
-        X_scaled = scaler.transform(X)
-
-        prediction = model.predict(X_scaled)
-        pred_class = np.argmax(prediction)
+        X = scaler.transform([[views, likes, comments_count, sentiment_class]])
+        pred_class = np.argmax(model.predict(X))
 
         labels = {
-            0: ("Low Popularity", "📉"),
-            1: ("Medium Popularity", "📊"),
-            2: ("High Popularity", "🔥")
+            0: "📉 Low Popularity",
+            1: "📊 Medium Popularity",
+            2: "🔥 High Popularity"
         }
 
-        result_text, emoji = labels[pred_class]
-        st.success(f"{emoji} **Predicted Popularity: {result_text}**")
+        st.success(f"**Predicted Result:** {labels[pred_class]}")
 
         st.session_state.pred_class = pred_class
         st.session_state.avg_sentiment = avg_sentiment
         st.session_state.sentiments = sentiments
 
-    # ======================
-    # INSIGHTS & RECOMMENDATIONS
-    # ======================
     if "pred_class" in st.session_state:
         st.markdown("---")
         st.header("💡 Insights & Recommendations")
 
-        fig_sent = go.Figure()
-        fig_sent.add_bar(
+        fig = go.Figure()
+        fig.add_bar(
             x=[f"Comment {i+1}" for i in range(len(st.session_state.sentiments))],
             y=st.session_state.sentiments
         )
-
-        fig_sent.update_layout(
-            title="Sentiment Score per Comment",
-            yaxis_title="Sentiment Score (-1 to +1)",
-            height=400
-        )
-
-        st.plotly_chart(fig_sent, use_container_width=True)
+        fig.update_layout(yaxis_title="Sentiment Score (-1 to 1)")
+        st.plotly_chart(fig, use_container_width=True)
 
         st.write(f"**Average Sentiment Score:** `{st.session_state.avg_sentiment:.3f}`")
-
-        recs = []
-
-        # Views
-        if views < 1000:
-            recs.append("👀 Views are low — improve title, thumbnail, and SEO.")
-        elif views < 10000:
-            recs.append("👀 Moderate views — promote on social media.")
-        else:
-            recs.append("👀 Strong views — maintain consistency.")
-
-        # Likes
-        like_ratio = likes / max(views, 1)
-        if like_ratio < 0.02:
-            recs.append("👍 Low likes ratio — encourage likes via CTA.")
-        elif like_ratio < 0.05:
-            recs.append("👍 Average likes engagement — improve content appeal.")
-        else:
-            recs.append("👍 High likes engagement — audience values content.")
-
-        # Comments
-        if comments_count < 50:
-            recs.append("💬 Low comment activity — ask questions to engage viewers.")
-        elif comments_count < 200:
-            recs.append("💬 Moderate comments — reply to comments.")
-        else:
-            recs.append("💬 High comment interaction — strong community engagement.")
-
-        # Sentiment
-        if st.session_state.avg_sentiment < -0.25:
-            recs.append("😟 Negative sentiment — review viewer feedback.")
-        elif st.session_state.avg_sentiment <= 0.25:
-            recs.append("🙂 Neutral sentiment — add emotional storytelling.")
-        else:
-            recs.append("🥰 Positive sentiment — excellent audience satisfaction.")
-
-        for r in recs:
-            st.write(r)
 
 # ======================
 # CONTACT TAB
@@ -294,22 +231,22 @@ with tab_predict:
 with tab_contact:
     st.header("📩 Contact & Feedback")
 
-    st.write("Share suggestions to improve this prediction system.")
+    st.write("""
+    This section allows users to submit feedback or suggestions
+    to improve the prediction system.
+    """)
 
-    with st.form("feedback_form"):
+    with st.form("feedback_form", clear_on_submit=True):
         name = st.text_input("Name")
         email = st.text_input("Email (optional)")
-        feedback = st.text_area("Your Feedback / Suggestions")
-        submit = st.form_submit_button("Submit")
+        feedback = st.text_area("Your Feedback / Suggestions", height=150)
+        submit = st.form_submit_button("Submit Feedback")
 
     if submit:
         if feedback.strip() == "":
-            st.warning("⚠️ Please enter feedback.")
+            st.warning("⚠️ Please enter feedback before submitting.")
         else:
             st.success("✅ Thank you! Your feedback has been received.")
-
-
-
 
 
 
