@@ -114,12 +114,27 @@ with tab_home:
     st.header("📌 Project Overview")
 
     st.write("""
-    This system predicts YouTube video popularity using engagement metrics
-    and viewer sentiment analyzed through an Artificial Neural Network (ANN).
+     This system predicts the popularity level of YouTube videos by combining:
+    - Engagement metrics (views, likes, comments)
+    - Viewer sentiment extracted from comments
+    - An Artificial Neural Network (ANN) classifier
     """)
 
-    st.subheader("🎯 Popularity Classes")
-    st.write("📉 Low | 📊 Medium | 🔥 High")
+    st.subheader("🔄 System Workflow")
+    st.write("""
+    1. User enters engagement metrics  
+    2. Viewer comments are analyzed for sentiment  
+    3. Data is normalized using a scaler  
+    4. ANN model predicts popularity level  
+    5. Insights and recommendations are generated
+    """)
+
+    st.subheader("🎯 Popularity Levels")
+    st.write("""
+    - 📉 Low Popularity  
+    - 📊 Medium Popularity  
+    - 🔥 High Popularity
+    """)
 
     st.markdown("---")
     st.header("📊 Model Performance")
@@ -164,23 +179,52 @@ with tab_predict:
     predict_btn = col1.button("🔮 Predict")
     col2.button("🔁 Reset", on_click=reset_all)
 
-    if predict_btn:
-        valid_comments = [c for c in comments if c.strip()]
-        sentiments = [get_raw_sentiment(clean_comment(c)) for c in valid_comments]
+        if predict_btn:
+
+        if views == 0 or likes == 0 or comments_count == 0:
+            st.error("⚠️ Please enter Views, Likes, and Comments Count.")
+            st.stop()
+
+        valid_comments = [c for c in comment_inputs if c.strip() != ""]
+        if len(valid_comments) < 2:
+            st.error("⚠️ Enter at least TWO non-empty comments.")
+            st.stop()
+
+        sentiments = []
+        for c in valid_comments:
+            c_clean = clean_comment(c)
+            if c_clean:
+                sentiments.append(get_raw_sentiment(c_clean))
 
         avg_sentiment = np.mean(sentiments)
         sentiment_class = convert_sentiment_to_class(avg_sentiment)
 
-        X = scaler.transform([[views, likes, comments_count, sentiment_class]])
-        pred_class = np.argmax(model.predict(X))
+        X = np.array([[views, likes, comments_count, sentiment_class]])
+        X_scaled = scaler.transform(X)
 
-        st.session_state.show_results = True
+        prediction = model.predict(X_scaled)
+        pred_class = np.argmax(prediction)
+        confidence = np.max(prediction)
+
+        labels = {
+            0: ("Low Popularity", "📉"),
+            1: ("Medium Popularity", "📊"),
+            2: ("High Popularity", "🔥")
+        }
+
+        result_text, emoji = labels[pred_class]
+
+        st.success(f"{emoji} **Predicted Popularity: {result_text}**")
+        #st.write(f"Prediction Confidence: **{confidence * 100:.2f}%**")
+
+        # Store results for Insights tab
         st.session_state.pred_class = pred_class
-        st.session_state.sentiments = sentiments
+        st.session_state.result_text = result_text
         st.session_state.avg_sentiment = avg_sentiment
+        st.session_state.sentiment_class = sentiment_class
 
-        st.success(f"🔥 Predicted Popularity: **{['Low','Medium','High'][pred_class]}**")
 
+    
     if st.session_state.show_results:
         st.subheader("📊 Sentiment Analysis")
         fig = go.Figure()
@@ -250,3 +294,4 @@ with tab_contact:
                               header=not os.path.exists("feedback/feedback.csv"),
                               index=False)
         st.success("✅ Feedback saved successfully!")
+
