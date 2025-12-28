@@ -64,7 +64,7 @@ model = load_model("model/youtube_popularity_ann.h5")
 scaler = joblib.load("model/scaler.pkl")
 
 # ======================
-# Reset Function (CORRECT)
+# Reset Function
 # ======================
 def reset_all():
     st.session_state.views = 0
@@ -114,20 +114,9 @@ with tab_home:
     st.header("📌 Project Overview")
 
     st.write("""
-    This system predicts YouTube video popularity by integrating:
-    - Engagement metrics (views, likes, comments)
-    - Viewer sentiment extracted from comments
-    - An Artificial Neural Network (ANN) classifier
+    This system predicts YouTube video popularity using engagement metrics
+    and viewer sentiment analyzed through an Artificial Neural Network (ANN).
     """)
-
-    st.subheader("🔄 System Workflow")
-    st.write("""
-    1. Engagement metrics are provided  
-    2. Viewer comments are analyzed for sentiment  
-    3. Features are normalized using a scaler  
-    4. ANN predicts popularity level  
-    """)
-
 
     st.subheader("🎯 Popularity Classes")
     st.write("📉 Low | 📊 Medium | 🔥 High")
@@ -135,15 +124,10 @@ with tab_home:
     st.markdown("---")
     st.header("📊 Model Performance")
 
-    try:
-        X_test = joblib.load("model/X_test.pkl")
-        y_test = joblib.load("model/y_test.pkl")
-    except:
-        st.error("Test dataset not found.")
-        st.stop()
+    X_test = joblib.load("model/X_test.pkl")
+    y_test = joblib.load("model/y_test.pkl")
 
-    X_test_scaled = scaler.transform(X_test)
-    y_pred = np.argmax(model.predict(X_test_scaled), axis=1)
+    y_pred = np.argmax(model.predict(scaler.transform(X_test)), axis=1)
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Accuracy", f"{accuracy_score(y_test, y_pred)*100:.2f}%")
@@ -153,8 +137,8 @@ with tab_home:
     cm = confusion_matrix(y_test, y_pred)
     fig_cm = ff.create_annotated_heatmap(
         z=cm,
-        x=["Low","Medium","High"],
-        y=["Low","Medium","High"],
+        x=["Low", "Medium", "High"],
+        y=["Low", "Medium", "High"],
         colorscale="Blues"
     )
     st.plotly_chart(fig_cm, use_container_width=True)
@@ -181,16 +165,9 @@ with tab_predict:
     col2.button("🔁 Reset", on_click=reset_all)
 
     if predict_btn:
-        if views == 0 or likes == 0 or comments_count == 0:
-            st.error("Please enter Views, Likes and Comments Count.")
-            st.stop()
-
         valid_comments = [c for c in comments if c.strip()]
-        if len(valid_comments) < 2:
-            st.error("Enter at least TWO comments.")
-            st.stop()
-
         sentiments = [get_raw_sentiment(clean_comment(c)) for c in valid_comments]
+
         avg_sentiment = np.mean(sentiments)
         sentiment_class = convert_sentiment_to_class(avg_sentiment)
 
@@ -199,30 +176,61 @@ with tab_predict:
 
         st.session_state.show_results = True
         st.session_state.pred_class = pred_class
-        st.session_state.sentiment_class = sentiment_class
-        st.session_state.avg_sentiment = avg_sentiment
         st.session_state.sentiments = sentiments
+        st.session_state.avg_sentiment = avg_sentiment
 
-        labels = ["Low", "Medium", "High"]
-        st.success(f"🔥 Predicted Popularity: **{labels[pred_class]}**")
+        st.success(f"🔥 Predicted Popularity: **{['Low','Medium','High'][pred_class]}**")
 
     if st.session_state.show_results:
-        st.subheader("💡 Recommendations")
+        st.subheader("📊 Sentiment Analysis")
+        fig = go.Figure()
+        fig.add_bar(
+            x=[f"Comment {i+1}" for i in range(len(st.session_state.sentiments))],
+            y=st.session_state.sentiments
+        )
+        fig.update_layout(
+            yaxis_title="Sentiment Score (-1 to +1)",
+            title="Sentiment Score per Comment"
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-        recs = []
-        recs.append("📉 Improve thumbnails & SEO" if st.session_state.pred_class == 0 else
-                    "📊 Increase engagement" if st.session_state.pred_class == 1 else
-                    "🔥 Maintain consistency")
+        st.subheader("📌 Actionable Recommendations")
 
-        recs.append("😟 Address negative feedback" if st.session_state.sentiment_class == 0 else
-                    "🙂 Add emotional appeal" if st.session_state.sentiment_class == 1 else
-                    "🥰 Audience loves it!")
+        # Views
+        if views < 1000:
+            st.write("👀 **Low Views** — Improve SEO, thumbnails, and titles.")
+        elif views < 10000:
+            st.write("👀 **Moderate Views** — Promote content on social media.")
+        else:
+            st.write("👀 **High Views** — Maintain posting consistency.")
 
-        for r in recs:
-            st.write(r)
+        # Likes
+        like_ratio = likes / max(views, 1)
+        if like_ratio < 0.02:
+            st.write("👍 **Low Likes Engagement** — Encourage likes via CTA.")
+        elif like_ratio < 0.05:
+            st.write("👍 **Average Likes Engagement** — Improve content appeal.")
+        else:
+            st.write("👍 **High Likes Engagement** — Strong audience approval.")
+
+        # Comments
+        if comments_count < 50:
+            st.write("💬 **Low Comments** — Ask questions to engage viewers.")
+        elif comments_count < 200:
+            st.write("💬 **Moderate Comments** — Reply to comments actively.")
+        else:
+            st.write("💬 **High Comments** — Strong community engagement.")
+
+        # Sentiment
+        if st.session_state.avg_sentiment < -0.25:
+            st.write("😟 **Negative Sentiment** — Address viewer concerns.")
+        elif st.session_state.avg_sentiment <= 0.25:
+            st.write("🙂 **Neutral Sentiment** — Add emotional storytelling.")
+        else:
+            st.write("🥰 **Positive Sentiment** — Excellent audience satisfaction.")
 
 # ======================
-# CONTACT TAB (CSV STORAGE)
+# CONTACT TAB
 # ======================
 with tab_contact:
     st.header("📩 Contact & Feedback")
@@ -235,19 +243,10 @@ with tab_contact:
 
     if submit and feedback.strip():
         os.makedirs("feedback", exist_ok=True)
-        file_path = "feedback/feedback.csv"
-
-        df = pd.DataFrame([[name, email, feedback]],
-                          columns=["Name", "Email", "Feedback"])
-
-        if os.path.exists(file_path):
-            df.to_csv(file_path, mode="a", header=False, index=False)
-        else:
-            df.to_csv(file_path, index=False)
-
+        pd.DataFrame([[name, email, feedback]],
+                     columns=["Name", "Email", "Feedback"]
+                     ).to_csv("feedback/feedback.csv",
+                              mode="a",
+                              header=not os.path.exists("feedback/feedback.csv"),
+                              index=False)
         st.success("✅ Feedback saved successfully!")
-
-
-
-
-
