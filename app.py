@@ -275,16 +275,16 @@ with tab_contact:
         feedback = st.text_area("Your Feedback")
         submit = st.form_submit_button("Submit")
 
-    if submit and feedback.strip():
-        os.makedirs("feedback", exist_ok=True)
-        pd.DataFrame([[name, email, feedback]],
-                     columns=["Name", "Email", "Feedback"]
-                     ).to_csv(
-            "feedback/feedback.csv",
-            mode="a",
-            header=not os.path.exists("feedback/feedback.csv"),
-            index=False
+    if os.path.exists("feedback/feedback.csv"):
+    st.markdown("### 📥 Download Feedback Data")
+    with open("feedback/feedback.csv", "rb") as f:
+        st.download_button(
+            label="⬇️ Download feedback.csv",
+            data=f,
+            file_name="feedback.csv",
+            mime="text/csv"
         )
         st.success("✅ Feedback saved successfully!")
+
 
 
