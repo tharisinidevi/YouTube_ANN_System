@@ -148,7 +148,6 @@ with tab_home:
    col2.metric("Precision (Macro)", f"{precision_score(y_test, y_pred, average='macro')*100:.2f}%")
    col3.metric("Recall (Macro)", f"{recall_score(y_test, y_pred, average='macro')*100:.2f}%")
 
-
     cm = confusion_matrix(y_test, y_pred)
     fig_cm = ff.create_annotated_heatmap(
         z=cm,
@@ -179,7 +178,6 @@ with tab_predict:
     predict_btn = col1.button("🔮 Predict")
     col2.button("🔁 Reset", on_click=reset_all)
 
-    # ✅ FIXED INDENTATION
     if predict_btn:
 
         if views == 0 or likes == 0 or comments_count == 0:
@@ -212,7 +210,6 @@ with tab_predict:
         result_text, emoji = labels[pred_class]
         st.success(f"{emoji} **Predicted Popularity: {result_text}**")
 
-        # Store results
         st.session_state.show_results = True
         st.session_state.pred_class = pred_class
         st.session_state.sentiments = sentiments
@@ -234,7 +231,6 @@ with tab_predict:
 
         st.subheader("📌 Actionable Recommendations")
 
-        # Views
         if views < 1000:
             st.write("👀 **Low Views** — Improve SEO, thumbnails, and titles.")
         elif views < 10000:
@@ -242,7 +238,6 @@ with tab_predict:
         else:
             st.write("👀 **High Views** — Maintain posting consistency.")
 
-        # Likes
         like_ratio = likes / max(views, 1)
         if like_ratio < 0.02:
             st.write("👍 **Low Likes Engagement** — Encourage likes via CTA.")
@@ -251,7 +246,6 @@ with tab_predict:
         else:
             st.write("👍 **High Likes Engagement** — Strong audience approval.")
 
-        # Comments
         if comments_count < 50:
             st.write("💬 **Low Comments** — Ask questions to engage viewers.")
         elif comments_count < 200:
@@ -259,7 +253,6 @@ with tab_predict:
         else:
             st.write("💬 **High Comments** — Strong community engagement.")
 
-        # Sentiment
         if st.session_state.avg_sentiment < -0.25:
             st.write("😟 **Negative Sentiment** — Address viewer concerns.")
         elif st.session_state.avg_sentiment <= 0.25:
@@ -278,30 +271,25 @@ with tab_contact:
         "Please share them below."
     )
 
-    # ---------- FEEDBACK FORM ----------
     with st.form("feedback_form", clear_on_submit=True):
         name = st.text_input("Name")
         email = st.text_input("Email (optional)")
         feedback = st.text_area("Your Feedback / Suggestions", height=150)
         submit = st.form_submit_button("Submit Feedback")
 
-    # ---------- SAVE FEEDBACK ----------
     if submit:
         if feedback.strip() == "":
             st.warning("⚠️ Please enter your feedback before submitting.")
         else:
-            # Create feedback directory if not exists
             os.makedirs("feedback", exist_ok=True)
 
             feedback_file = "feedback/feedback.csv"
 
-            # Create DataFrame
             new_feedback = pd.DataFrame(
                 [[name, email, feedback]],
                 columns=["Name", "Email", "Feedback"]
             )
 
-            # Append to CSV
             new_feedback.to_csv(
                 feedback_file,
                 mode="a",
@@ -311,7 +299,6 @@ with tab_contact:
 
             st.success("✅ Thank you! Your feedback has been recorded.")
 
-    # ---------- ADMIN DOWNLOAD ----------
     st.markdown("---")
     st.subheader("📥 Admin: Download Feedback")
 
@@ -327,4 +314,3 @@ with tab_contact:
             )
     else:
         st.info("No feedback submitted yet.")
-
