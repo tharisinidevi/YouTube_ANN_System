@@ -264,27 +264,62 @@ with tab_predict:
             st.write("🥰 **Positive Sentiment** — Excellent audience satisfaction.")
 
 # ======================
-# CONTACT TAB
+# CONTACT & FEEDBACK TAB
 # ======================
 with tab_contact:
     st.header("📩 Contact & Feedback")
 
+    st.write(
+        "Have suggestions or feedback to improve this YouTube Popularity Prediction system? "
+        "Please share them below."
+    )
+
+    # ---------- FEEDBACK FORM ----------
     with st.form("feedback_form", clear_on_submit=True):
         name = st.text_input("Name")
         email = st.text_input("Email (optional)")
-        feedback = st.text_area("Your Feedback")
-        submit = st.form_submit_button("Submit")
+        feedback = st.text_area("Your Feedback / Suggestions", height=150)
+        submit = st.form_submit_button("Submit Feedback")
 
-    if os.path.exists("feedback/feedback.csv"):
-    st.markdown("### 📥 Download Feedback Data")
-    with open("feedback/feedback.csv", "rb") as f:
-        st.download_button(
-            label="⬇️ Download feedback.csv",
-            data=f,
-            file_name="feedback.csv",
-            mime="text/csv"
-        )
-        st.success("✅ Feedback saved successfully!")
+    # ---------- SAVE FEEDBACK ----------
+    if submit:
+        if feedback.strip() == "":
+            st.warning("⚠️ Please enter your feedback before submitting.")
+        else:
+            # Create feedback directory if not exists
+            os.makedirs("feedback", exist_ok=True)
 
+            feedback_file = "feedback/feedback.csv"
 
+            # Create DataFrame
+            new_feedback = pd.DataFrame(
+                [[name, email, feedback]],
+                columns=["Name", "Email", "Feedback"]
+            )
 
+            # Append to CSV
+            new_feedback.to_csv(
+                feedback_file,
+                mode="a",
+                header=not os.path.exists(feedback_file),
+                index=False
+            )
+
+            st.success("✅ Thank you! Your feedback has been recorded.")
+
+    # ---------- ADMIN DOWNLOAD ----------
+    st.markdown("---")
+    st.subheader("📥 Admin: Download Feedback")
+
+    feedback_file = "feedback/feedback.csv"
+
+    if os.path.exists(feedback_file):
+        with open(feedback_file, "rb") as f:
+            st.download_button(
+                label="⬇️ Download Feedback CSV",
+                data=f,
+                file_name="feedback.csv",
+                mime="text/csv"
+            )
+    else:
+        st.info("No feedback submitted yet.")
