@@ -138,12 +138,16 @@ with tab_home:
     X_test = joblib.load("model/X_test.pkl")
     y_test = joblib.load("model/y_test.pkl")
 
-    y_pred = np.argmax(model.predict(scaler.transform(X_test)), axis=1)
+    # ❌ DO NOT SCALE AGAIN — already scaled
+    y_pred = np.argmax(model.predict(X_test), axis=1)
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Accuracy", f"{accuracy_score(y_test, y_pred)*100:.2f}%")
-    col2.metric("Precision", f"{precision_score(y_test, y_pred, average='weighted')*100:.2f}%")
-    col3.metric("Recall", f"{recall_score(y_test, y_pred, average='weighted')*100:.2f}%")
+   from sklearn.metrics import accuracy_score, precision_score, recall_score
+
+   col1, col2, col3 = st.columns(3)
+   col1.metric("Accuracy", f"{accuracy_score(y_test, y_pred)*100:.2f}%")
+   col2.metric("Precision (Macro)", f"{precision_score(y_test, y_pred, average='macro')*100:.2f}%")
+   col3.metric("Recall (Macro)", f"{recall_score(y_test, y_pred, average='macro')*100:.2f}%")
+
 
     cm = confusion_matrix(y_test, y_pred)
     fig_cm = ff.create_annotated_heatmap(
@@ -323,3 +327,4 @@ with tab_contact:
             )
     else:
         st.info("No feedback submitted yet.")
+
