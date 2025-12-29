@@ -141,7 +141,7 @@ with tab_home:
     # ❌ DO NOT SCALE AGAIN — already scaled
     y_pred = np.argmax(model.predict(X_test), axis=1)
 
-   from sklearn.metrics import accuracy_score, precision_score, recall_score
+   #from sklearn.metrics import accuracy_score, precision_score, recall_score
 
    col1, col2, col3 = st.columns(3)
    col1.metric("Accuracy", f"{accuracy_score(y_test, y_pred)*100:.2f}%")
@@ -314,3 +314,4 @@ with tab_contact:
             )
     else:
         st.info("No feedback submitted yet.")
+
